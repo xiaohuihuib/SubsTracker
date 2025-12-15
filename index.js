@@ -5152,9 +5152,10 @@ async function testSingleSubscriptionNotification(id, env) {
     // 获取日历类型和自动续期状态
     const calendarType = subscription.useLunar ? '农历' : '公历';
     const autoRenewText = subscription.autoRenew ? '是' : '否';
-    
+    const amountText = subscription.amount ? `\n金额: ¥${subscription.amount.toFixed(2)}/周期` : '';
+
     const commonContent = `**订阅详情**
-类型: ${subscription.customType || '其他'}
+类型: ${subscription.customType || '其他'}${amountText}
 日历类型: ${calendarType}
 到期日期: ${formattedExpiryDate}${lunarExpiryText}
 自动续期: ${autoRenewText}
