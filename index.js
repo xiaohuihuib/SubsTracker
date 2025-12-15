@@ -5796,7 +5796,11 @@ for (const subscription of subscriptions) {
       diffMs = newExpiryDate.getTime() - currentTime.getTime();
       diffHours = diffMs / MS_PER_HOUR;
 
-      const updatedSubscription = { ...subscription, expiryDate: newExpiryDate.toISOString() };
+      const updatedSubscription = {
+        ...subscription,
+        expiryDate: newExpiryDate.toISOString(),
+        lastPaymentDate: currentTime.toISOString()
+      };
       updatedSubscriptions.push(updatedSubscription);
       hasUpdates = true;
 
@@ -5851,7 +5855,11 @@ for (const subscription of subscriptions) {
       diffMs = newExpiryDate.getTime() - currentTime.getTime();
       diffHours = diffMs / MS_PER_HOUR;
 
-      const updatedSubscription = { ...subscription, expiryDate: newExpiryDate.toISOString() };
+      const updatedSubscription = {
+        ...subscription,
+        expiryDate: newExpiryDate.toISOString(),
+        lastPaymentDate: currentTime.toISOString()
+      };
       updatedSubscriptions.push(updatedSubscription);
       hasUpdates = true;
 
