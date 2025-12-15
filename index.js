@@ -6508,12 +6508,19 @@ export default {
 
 // ==================== 仪表盘统计函数 ====================
 function getPaymentCountInMonth(subscriptions, year, month, timezone) {
-  return subscriptions.filter(sub => {
-    if (!sub.amount || sub.amount <= 0) return false;
-    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
-    const parts = getTimezoneDateParts(paymentDate, timezone);
-    return parts.year === year && parts.month === month;
-  }).length;
+  let count = 0;
+  subscriptions.forEach(sub => {
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      const parts = getTimezoneDateParts(paymentDate, timezone);
+      if (parts.year === year && parts.month === month) {
+        count++;
+      }
+    });
+  });
+  return count;
 }
 
 function calculateMonthlyExpense(subscriptions, timezone) {
@@ -6523,19 +6530,37 @@ function calculateMonthlyExpense(subscriptions, timezone) {
   const currentMonth = parts.month;
 
   let amount = 0;
+  let currentMonthCount = 0;
+
+  // 遍历所有订阅的支付历史
   subscriptions.forEach(sub => {
-    if (!sub.amount || sub.amount <= 0) return;
-    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
-    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
-    if (paymentParts.year === currentYear && paymentParts.month === currentMonth) {
-      amount += sub.amount;
-    }
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+      if (paymentParts.year === currentYear && paymentParts.month === currentMonth) {
+        amount += payment.amount;
+        currentMonthCount++;
+      }
+    });
   });
 
+  // 计算上月数据用于趋势对比
   const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-  const lastMonthCount = getPaymentCountInMonth(subscriptions, lastMonthYear, lastMonth, timezone);
-  const currentMonthCount = getPaymentCountInMonth(subscriptions, currentYear, currentMonth, timezone);
+  let lastMonthCount = 0;
+  subscriptions.forEach(sub => {
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+      if (paymentParts.year === lastMonthYear && paymentParts.month === lastMonth) {
+        lastMonthCount++;
+      }
+    });
+  });
 
   let trend = 0;
   let trendDirection = 'flat';
@@ -6554,13 +6579,18 @@ function calculateYearlyExpense(subscriptions, timezone) {
   const currentYear = parts.year;
 
   let amount = 0;
+
+  // 遍历所有订阅的支付历史
   subscriptions.forEach(sub => {
-    if (!sub.amount || sub.amount <= 0) return;
-    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
-    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
-    if (paymentParts.year === currentYear) {
-      amount += sub.amount;
-    }
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+      if (paymentParts.year === currentYear) {
+        amount += payment.amount;
+      }
+    });
   });
 
   const monthlyAverage = amount / parts.month;
@@ -6571,19 +6601,27 @@ function getRecentPayments(subscriptions, timezone) {
   const now = getCurrentTimeInTimezone(timezone);
   const sevenDaysAgo = new Date(now.getTime() - 7 * MS_PER_DAY);
 
-  return subscriptions
-    .filter(sub => {
-      if (!sub.amount || sub.amount <= 0) return false;
-      const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
-      return paymentDate >= sevenDaysAgo && paymentDate <= now;
-    })
-    .map(sub => ({
-      name: sub.name,
-      amount: sub.amount,
-      customType: sub.customType,
-      paymentDate: sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate
-    }))
-    .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+  const recentPayments = [];
+
+  // 遍历所有订阅的支付历史
+  subscriptions.forEach(sub => {
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      if (paymentDate >= sevenDaysAgo && paymentDate <= now) {
+        recentPayments.push({
+          name: sub.name,
+          amount: payment.amount,
+          customType: sub.customType,
+          paymentDate: payment.date,
+          note: payment.note
+        });
+      }
+    });
+  });
+
+  return recentPayments.sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
 }
 
 function getUpcomingRenewals(subscriptions, timezone) {
@@ -6618,15 +6656,19 @@ function getExpenseByType(subscriptions, timezone) {
   const typeMap = {};
   let total = 0;
 
+  // 遍历所有订阅的支付历史
   subscriptions.forEach(sub => {
-    if (!sub.amount || sub.amount <= 0) return;
-    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
-    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
-    if (paymentParts.year === currentYear) {
-      const type = sub.customType || '未分类';
-      typeMap[type] = (typeMap[type] || 0) + sub.amount;
-      total += sub.amount;
-    }
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+      if (paymentParts.year === currentYear) {
+        const type = sub.customType || '未分类';
+        typeMap[type] = (typeMap[type] || 0) + payment.amount;
+        total += payment.amount;
+      }
+    });
   });
 
   return Object.entries(typeMap)
@@ -6646,18 +6688,22 @@ function getExpenseByCategory(subscriptions, timezone) {
   const categoryMap = {};
   let total = 0;
 
+  // 遍历所有订阅的支付历史
   subscriptions.forEach(sub => {
-    if (!sub.amount || sub.amount <= 0) return;
-    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
-    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
-    if (paymentParts.year === currentYear) {
-      const categories = sub.category ? sub.category.split(CATEGORY_SEPARATOR_REGEX).filter(c => c.trim()) : ['未分类'];
-      categories.forEach(category => {
-        const cat = category.trim() || '未分类';
-        categoryMap[cat] = (categoryMap[cat] || 0) + sub.amount / categories.length;
-      });
-      total += sub.amount;
-    }
+    const paymentHistory = sub.paymentHistory || [];
+    paymentHistory.forEach(payment => {
+      if (!payment.amount || payment.amount <= 0) return;
+      const paymentDate = new Date(payment.date);
+      const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+      if (paymentParts.year === currentYear) {
+        const categories = sub.category ? sub.category.split(CATEGORY_SEPARATOR_REGEX).filter(c => c.trim()) : ['未分类'];
+        categories.forEach(category => {
+          const cat = category.trim() || '未分类';
+          categoryMap[cat] = (categoryMap[cat] || 0) + payment.amount / categories.length;
+        });
+        total += payment.amount;
+      }
+    });
   });
 
   return Object.entries(categoryMap)
