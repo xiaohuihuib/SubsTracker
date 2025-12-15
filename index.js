@@ -855,6 +855,9 @@ const adminPage = `
           <span id="systemTimeDisplay" class="ml-4 text-base text-indigo-600 font-normal"></span>
         </div>
         <div class="flex items-center space-x-4">
+          <a href="/admin/dashboard" class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
           <a href="/admin" class="text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
             <i class="fas fa-list mr-1"></i>订阅列表
           </a>
@@ -906,22 +909,25 @@ const adminPage = `
         <table class="w-full divide-y divide-gray-200 responsive-table">
           <thead class="bg-gray-50">
             <tr>
-              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 25%;">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 23%;">
                 名称
               </th>
-              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 13%;">
                 类型
               </th>
-              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 20%;">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 18%;">
                 到期时间 <i class="fas fa-sort-up ml-1 text-indigo-500" title="按到期时间升序排列"></i>
               </th>
-              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 10%;">
+                金额
+              </th>
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 13%;">
                 提醒设置
               </th>
               <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 10%;">
                 状态
               </th>
-              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">
+              <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 13%;">
                 操作
               </th>
             </tr>
@@ -967,11 +973,33 @@ const adminPage = `
             <label for="category" class="block text-sm font-medium text-gray-700 mb-1">分类标签</label>
             <input type="text" id="category" placeholder="例如：个人、家庭、公司"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-            <p class="mt-1 text-xs text-gray-500">可输入多个标签并使用“/”分隔，便于筛选和统计</p>
+            <p class="mt-1 text-xs text-gray-500">可输入多个标签并使用"/"分隔，便于筛选和统计</p>
             <div class="error-message text-red-500"></div>
           </div>
         </div>
-        
+
+        <!-- 金额 -->
+        <div class="mb-4">
+          <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
+            金额（元）
+            <span class="text-gray-400 text-xs ml-1">可选</span>
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+              ¥
+            </span>
+            <input
+              type="number"
+              id="amount"
+              step="0.01"
+              min="0"
+              placeholder="例如: 15.00"
+              class="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <p class="mt-1 text-xs text-gray-500">用于统计支出和生成仪表盘</p>
+        </div>
+
         <div class="mb-4 flex items-center space-x-6">
           <label class="lunar-toggle">
             <input type="checkbox" id="showLunar" class="form-checkbox h-4 w-4 text-indigo-600">
@@ -1989,6 +2017,13 @@ const lunarBiz = {
           : (reminder.unit === 'hour' ? '<div class="text-xs text-gray-500 mt-1">小时级提醒</div>' : '');
         const reminderHtml = '<div><i class="fas fa-bell mr-1"></i>' + reminder.displayText + '</div>' + reminderExtra;
 
+        const amountHtml = subscription.amount
+          ? '<div class="flex items-center gap-1">' +
+              '<i class="fas fa-yen-sign text-green-500"></i>' +
+              '<span class="text-sm font-medium text-gray-900">¥' + subscription.amount.toFixed(2) + '</span>' +
+            '</div>'
+          : '<span class="text-xs text-gray-400">未设置</span>';
+
         row.innerHTML =
           '<td data-label="名称" class="px-4 py-3"><div class="td-content-wrapper">' +
             nameHtml +
@@ -2008,6 +2043,9 @@ const lunarBiz = {
             lunarHtml +
             '<div class="text-xs text-gray-500 mt-1">' + daysLeftText + '</div>' +
             startDateHtml +
+          '</div></td>' +
+          '<td data-label="金额" class="px-4 py-3"><div class="td-content-wrapper">' +
+            amountHtml +
           '</div></td>' +
           '<td data-label="提醒设置" class="px-4 py-3"><div class="td-content-wrapper">' +
             reminderHtml +
@@ -2836,6 +2874,7 @@ const lunarBiz = {
         customType: document.getElementById('customType').value.trim(),
         category: document.getElementById('category').value.trim(),
         notes: document.getElementById('notes').value.trim() || '',
+        amount: document.getElementById('amount').value ? parseFloat(document.getElementById('amount').value) : null,
         isActive: document.getElementById('isActive').checked,
         autoRenew: document.getElementById('autoRenew').checked,
         startDate: document.getElementById('startDate').value,
@@ -2897,6 +2936,7 @@ const lunarBiz = {
           document.getElementById('customType').value = subscription.customType || '';
           document.getElementById('category').value = subscription.category || '';
           document.getElementById('notes').value = subscription.notes || '';
+          document.getElementById('amount').value = subscription.amount || '';
           document.getElementById('isActive').checked = subscription.isActive !== false;
           document.getElementById('autoRenew').checked = subscription.autoRenew !== false;
           document.getElementById('startDate').value = subscription.startDate ? subscription.startDate.split('T')[0] : '';
@@ -3164,6 +3204,9 @@ const configPage = `
           <span id="systemTimeDisplay" class="ml-4 text-base text-indigo-600 font-normal"></span>
         </div>
         <div class="flex items-center space-x-4">
+          <a href="/admin/dashboard" class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
           <a href="/admin" class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
             <i class="fas fa-list mr-1"></i>订阅列表
           </a>
@@ -4004,6 +4047,157 @@ const configPage = `
 // 与前端一致的分类切割正则，用于提取标签信息
 const CATEGORY_SEPARATOR_REGEX = /[\/,，\s]+/;
 
+
+function dashboardPage() {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仪表盘 - SubsTracker</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transition: all 0.3s; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); }
+    .stat-card{background:white;border-radius:12px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:transform 0.2s,box-shadow 0.2s}
+    .stat-card:hover{transform:translateY(-4px);box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+    .stat-card-header{color:#6b7280;font-size:0.875rem;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem}
+    .stat-card-value{font-size:2rem;font-weight:700;color:#1f2937;margin-bottom:0.25rem}
+    .stat-card-subtitle{color:#9ca3af;font-size:0.875rem}
+    .stat-card-trend{display:inline-flex;align-items:center;gap:0.25rem;font-size:0.875rem;margin-top:0.5rem;padding:0.25rem 0.5rem;border-radius:6px}
+    .stat-card-trend.up{color:#10b981;background:#d1fae5}
+    .stat-card-trend.down{color:#ef4444;background:#fee2e2}
+    .stat-card-trend.flat{color:#6b7280;background:#f3f4f6}
+    .list-item{display:flex;align-items:center;justify-content:space-between;padding:1rem;border-radius:8px;transition:background 0.2s}
+    .list-item:hover{background:#f9fafb}
+    .list-item:not(:last-child){border-bottom:1px solid #f3f4f6}
+    .list-item-content{flex:1}
+    .list-item-name{font-weight:600;color:#1f2937;margin-bottom:0.25rem}
+    .list-item-meta{display:flex;align-items:center;gap:1rem;font-size:0.875rem;color:#6b7280;flex-wrap:wrap}
+    .list-item-amount{font-size:1.125rem;font-weight:700;color:#10b981}
+    .list-item-badge{display:inline-block;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.75rem;font-weight:500;background:#e0e7ff;color:#4f46e5}
+    .ranking-item{margin-bottom:1rem}
+    .ranking-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem}
+    .ranking-item-name{font-weight:600;color:#1f2937}
+    .ranking-item-value{display:flex;align-items:center;gap:0.5rem;font-size:0.875rem}
+    .ranking-item-amount{font-weight:700;color:#1f2937}
+    .ranking-item-percentage{color:#10b981}
+    .ranking-progress{width:100%;height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden}
+    .ranking-progress-bar{height:100%;border-radius:4px;transition:width 0.6s ease}
+    .ranking-progress-bar.color-1{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+    .ranking-progress-bar.color-2{background:linear-gradient(90deg,#10b981,#059669)}
+    .ranking-progress-bar.color-3{background:linear-gradient(90deg,#f59e0b,#d97706)}
+    .ranking-progress-bar.color-4{background:linear-gradient(90deg,#ef4444,#dc2626)}
+    .ranking-progress-bar.color-5{background:linear-gradient(90deg,#8b5cf6,#7c3aed)}
+    .empty-state{text-align:center;padding:3rem 1rem;color:#9ca3af}
+    .empty-state-icon{font-size:3rem;margin-bottom:1rem;opacity:0.5}
+    .empty-state-text{font-size:0.875rem}
+    .loading-skeleton{background:linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%);background-size:200% 100%;animation:loading 1.5s infinite;height:100px;border-radius:8px}
+    @keyframes loading{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  </style>
+</head>
+<body class="bg-gray-50">
+  <nav class="bg-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+          <span class="font-bold text-xl text-gray-800">订阅管理系统</span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <a href="/admin/dashboard" class="text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-list mr-1"></i>订阅列表
+          </a>
+          <a href="/admin/config" class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-cog mr-1"></i>系统配置
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">📊 仪表板</h2>
+      <p class="text-sm text-gray-500 mt-1">订阅费用和活动概览</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6" id="statsGrid">
+      <div class="loading-skeleton"></div>
+      <div class="loading-skeleton"></div>
+      <div class="loading-skeleton"></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-calendar-check text-blue-500"></i>
+          <h3 class="text-lg font-medium text-gray-900">最近支付</h3>
+        </div>
+        <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">过去7天</span>
+      </div>
+      <div class="p-6" id="recentPayments">
+        <div class="loading-skeleton"></div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-clock text-yellow-500"></i>
+          <h3 class="text-lg font-medium text-gray-900">即将续费</h3>
+        </div>
+        <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">未来7天</span>
+      </div>
+      <div class="p-6" id="upcomingRenewals">
+        <div class="loading-skeleton"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-chart-bar text-purple-500"></i>
+            <h3 class="text-lg font-medium text-gray-900">按类型支出排行</h3>
+          </div>
+          <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">年度统计</span>
+        </div>
+        <div class="p-6" id="expenseByType">
+          <div class="loading-skeleton"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-folder text-green-500"></i>
+            <h3 class="text-lg font-medium text-gray-900">按分类支出统计</h3>
+          </div>
+          <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">年度统计</span>
+        </div>
+        <div class="p-6" id="expenseByCategory">
+          <div class="loading-skeleton"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadDashboardData(){try{const r=await fetch('/api/dashboard/stats');const d=await r.json();if(!d.success)throw new Error(d.message||'加载失败');const data=d.data;document.getElementById('statsGrid').innerHTML=\`<div class="stat-card"><div class="stat-card-header">月度支出</div><div class="stat-card-value">¥\${data.monthlyExpense.amount.toFixed(2)}</div><div class="stat-card-subtitle">本月支出</div><div class="stat-card-trend \${data.monthlyExpense.trendDirection}"><i class="fas fa-arrow-\${data.monthlyExpense.trendDirection==='up'?'up':data.monthlyExpense.trendDirection==='down'?'down':'right'}"></i>\${data.monthlyExpense.trend}%</div></div><div class="stat-card"><div class="stat-card-header">年度支出</div><div class="stat-card-value">¥\${data.yearlyExpense.amount.toFixed(2)}</div><div class="stat-card-subtitle">本年度总支出</div><div class="stat-card-subtitle" style="margin-top:0.5rem">月均:¥\${data.yearlyExpense.monthlyAverage.toFixed(2)}</div></div><div class="stat-card"><div class="stat-card-header">活跃订阅</div><div class="stat-card-value">\${data.activeSubscriptions.total}</div><div class="stat-card-subtitle">总服务数</div>\${data.activeSubscriptions.expiringSoon>0?\`<div class="stat-card-trend down"><i class="fas fa-exclamation-circle"></i>\${data.activeSubscriptions.expiringSoon} 即将到期</div>\`:''}</div>\`;const rp=document.getElementById('recentPayments');rp.innerHTML=data.recentPayments.length===0?'<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">过去7天内没有支付记录</div></div>':data.recentPayments.map(s=>\`<div class="list-item"><div class="list-item-content"><div class="list-item-name">\${s.name}</div><div class="list-item-meta"><span><i class="fas fa-calendar"></i> 支付于:\${new Date(s.paymentDate).toLocaleDateString('zh-CN')}</span>\${s.customType?\`<span class="list-item-badge">\${s.customType}</span>\`:''}</div></div><div class="list-item-amount">¥\${(s.amount||0).toFixed(2)}</div></div>\`).join('');const ur=document.getElementById('upcomingRenewals');ur.innerHTML=data.upcomingRenewals.length===0?'<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">未来7天内没有即将续费的订阅</div></div>':data.upcomingRenewals.map(s=>\`<div class="list-item"><div class="list-item-content"><div class="list-item-name">\${s.name}</div><div class="list-item-meta"><span><i class="fas fa-clock"></i> 将于:\${new Date(s.renewalDate).toLocaleDateString('zh-CN')}</span><span style="color:#f59e0b;font-weight:600">\${s.daysUntilRenewal} 天后</span>\${s.customType?\`<span class="list-item-badge">\${s.customType}</span>\`:''}</div></div><div class="list-item-amount">¥\${(s.amount||0).toFixed(2)}</div></div>\`).join('');const et=document.getElementById('expenseByType');et.innerHTML=data.expenseByType.length===0?'<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">暂无支出数据</div></div>':data.expenseByType.map((item,i)=>\`<div class="ranking-item"><div class="ranking-item-header"><div class="ranking-item-name">\${item.type}</div><div class="ranking-item-value"><span class="ranking-item-amount">¥\${item.amount.toFixed(2)}</span><span class="ranking-item-percentage">\${item.percentage}%</span></div></div><div class="ranking-progress"><div class="ranking-progress-bar color-\${(i%5)+1}" style="width:\${item.percentage}%"></div></div></div>\`).join('');const ec=document.getElementById('expenseByCategory');ec.innerHTML=data.expenseByCategory.length===0?'<div class="empty-state"><div class="empty-state-icon">📂</div><div class="empty-state-text">暂无支出数据</div></div>':data.expenseByCategory.map((item,i)=>\`<div class="ranking-item"><div class="ranking-item-header"><div class="ranking-item-name">\${item.category}</div><div class="ranking-item-value"><span class="ranking-item-amount">¥\${item.amount.toFixed(2)}</span><span class="ranking-item-percentage">\${item.percentage}%</span></div></div><div class="ranking-progress"><div class="ranking-progress-bar color-\${(i%5)+1}" style="width:\${item.percentage}%"></div></div></div>\`).join('')}catch(e){console.error('加载仪表盘数据失败:',e);document.getElementById('statsGrid').innerHTML='<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">加载失败:'+e.message+'</div></div>'}}
+    loadDashboardData();
+    setInterval(loadDashboardData, 60000);
+  </script>
+</body>
+</html>`;
+}
 function extractTagsFromSubscriptions(subscriptions = []) {
   const tagSet = new Set();
   (subscriptions || []).forEach(sub => {
@@ -4056,6 +4250,12 @@ const admin = {
 
       if (pathname === '/admin/config') {
         return new Response(configPage, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' }
+        });
+      }
+
+      if (pathname === '/admin/dashboard') {
+        return new Response(dashboardPage(), {
           headers: { 'Content-Type': 'text/html; charset=utf-8' }
         });
       }
@@ -4211,6 +4411,53 @@ const api = {
             { status: 400, headers: { 'Content-Type': 'application/json' } }
           );
         }
+      }
+    }
+
+    if (path === '/dashboard/stats' && method === 'GET') {
+      try {
+        const subscriptions = await getAllSubscriptions(env);
+        const timezone = config?.TIMEZONE || 'UTC';
+
+        const monthlyExpense = calculateMonthlyExpense(subscriptions, timezone);
+        const yearlyExpense = calculateYearlyExpense(subscriptions, timezone);
+        const recentPayments = getRecentPayments(subscriptions, timezone);
+        const upcomingRenewals = getUpcomingRenewals(subscriptions, timezone);
+        const expenseByType = getExpenseByType(subscriptions, timezone);
+        const expenseByCategory = getExpenseByCategory(subscriptions, timezone);
+
+        const activeSubscriptions = subscriptions.filter(s => s.isActive);
+        const now = getCurrentTimeInTimezone(timezone);
+        const sevenDaysLater = new Date(now.getTime() + 7 * MS_PER_DAY);
+        const expiringSoon = activeSubscriptions.filter(s => {
+          const expiryDate = new Date(s.expiryDate);
+          return expiryDate >= now && expiryDate <= sevenDaysLater;
+        }).length;
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              monthlyExpense,
+              yearlyExpense,
+              activeSubscriptions: {
+                total: activeSubscriptions.length,
+                expiringSoon
+              },
+              recentPayments,
+              upcomingRenewals,
+              expenseByType,
+              expenseByCategory
+            }
+          }),
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error('获取仪表盘统计失败:', error);
+        return new Response(
+          JSON.stringify({ success: false, message: '获取统计数据失败: ' + error.message }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
       }
     }
 
@@ -4694,6 +4941,9 @@ async function createSubscription(subscription, env) {
       reminderDays: reminderSetting.unit === 'day' ? reminderSetting.value : undefined,
       reminderHours: reminderSetting.unit === 'hour' ? reminderSetting.value : undefined,
       notes: subscription.notes || '',
+      amount: subscription.amount || null,
+      currency: 'CNY',
+      lastPaymentDate: subscription.startDate || currentTime.toISOString(),
       isActive: subscription.isActive !== false,
       autoRenew: subscription.autoRenew !== false,
       useLunar: useLunar,
@@ -4786,6 +5036,9 @@ if (useLunar) {
       reminderDays: reminderSetting.unit === 'day' ? reminderSetting.value : undefined,
       reminderHours: reminderSetting.unit === 'hour' ? reminderSetting.value : undefined,
       notes: subscription.notes || '',
+      amount: subscription.amount !== undefined ? subscription.amount : subscriptions[index].amount,
+      currency: subscriptions[index].currency || 'CNY',
+      lastPaymentDate: subscriptions[index].lastPaymentDate || subscriptions[index].startDate || subscriptions[index].createdAt || currentTime.toISOString(),
       isActive: subscription.isActive !== undefined ? subscription.isActive : subscriptions[index].isActive,
       autoRenew: subscription.autoRenew !== undefined ? subscription.autoRenew : (subscriptions[index].autoRenew !== undefined ? subscriptions[index].autoRenew : true),
       useLunar: useLunar,
@@ -5183,11 +5436,12 @@ function formatNotificationContent(subscriptions, config) {
     // 获取日历类型和自动续期状态
     const calendarType = sub.useLunar ? '农历' : '公历';
     const autoRenewText = sub.autoRenew ? '是' : '否';
-    
+    const amountText = sub.amount ? `\n金额: ¥${sub.amount.toFixed(2)}/周期` : '';
+
     // 构建格式化的通知内容
     const subscriptionContent = `${statusEmoji} **${sub.name}**
 类型: ${typeText} ${periodText}
-分类: ${categoryText}
+分类: ${categoryText}${amountText}
 日历类型: ${calendarType}
 到期日期: ${formattedExpiryDate}${lunarExpiryText}
 自动续期: ${autoRenewText}
@@ -5771,3 +6025,166 @@ export default {
     await checkExpiringSubscriptions(env);
   }
 };
+
+// ==================== 仪表盘统计函数 ====================
+function getPaymentCountInMonth(subscriptions, year, month, timezone) {
+  return subscriptions.filter(sub => {
+    if (!sub.amount || sub.amount <= 0) return false;
+    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
+    const parts = getTimezoneDateParts(paymentDate, timezone);
+    return parts.year === year && parts.month === month;
+  }).length;
+}
+
+function calculateMonthlyExpense(subscriptions, timezone) {
+  const now = getCurrentTimeInTimezone(timezone);
+  const parts = getTimezoneDateParts(now, timezone);
+  const currentYear = parts.year;
+  const currentMonth = parts.month;
+
+  let amount = 0;
+  subscriptions.forEach(sub => {
+    if (!sub.amount || sub.amount <= 0) return;
+    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
+    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+    if (paymentParts.year === currentYear && paymentParts.month === currentMonth) {
+      amount += sub.amount;
+    }
+  });
+
+  const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+  const lastMonthCount = getPaymentCountInMonth(subscriptions, lastMonthYear, lastMonth, timezone);
+  const currentMonthCount = getPaymentCountInMonth(subscriptions, currentYear, currentMonth, timezone);
+
+  let trend = 0;
+  let trendDirection = 'flat';
+  if (lastMonthCount > 0) {
+    trend = Math.round(((currentMonthCount - lastMonthCount) / lastMonthCount) * 100);
+    if (trend > 0) trendDirection = 'up';
+    else if (trend < 0) trendDirection = 'down';
+  }
+
+  return { amount, trend: Math.abs(trend), trendDirection };
+}
+
+function calculateYearlyExpense(subscriptions, timezone) {
+  const now = getCurrentTimeInTimezone(timezone);
+  const parts = getTimezoneDateParts(now, timezone);
+  const currentYear = parts.year;
+
+  let amount = 0;
+  subscriptions.forEach(sub => {
+    if (!sub.amount || sub.amount <= 0) return;
+    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
+    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+    if (paymentParts.year === currentYear) {
+      amount += sub.amount;
+    }
+  });
+
+  const monthlyAverage = amount / parts.month;
+  return { amount, monthlyAverage };
+}
+
+function getRecentPayments(subscriptions, timezone) {
+  const now = getCurrentTimeInTimezone(timezone);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * MS_PER_DAY);
+
+  return subscriptions
+    .filter(sub => {
+      if (!sub.amount || sub.amount <= 0) return false;
+      const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
+      return paymentDate >= sevenDaysAgo && paymentDate <= now;
+    })
+    .map(sub => ({
+      name: sub.name,
+      amount: sub.amount,
+      customType: sub.customType,
+      paymentDate: sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate
+    }))
+    .sort((a, b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+}
+
+function getUpcomingRenewals(subscriptions, timezone) {
+  const now = getCurrentTimeInTimezone(timezone);
+  const sevenDaysLater = new Date(now.getTime() + 7 * MS_PER_DAY);
+
+  return subscriptions
+    .filter(sub => {
+      if (!sub.isActive) return false;
+      const renewalDate = new Date(sub.expiryDate);
+      return renewalDate >= now && renewalDate <= sevenDaysLater;
+    })
+    .map(sub => {
+      const renewalDate = new Date(sub.expiryDate);
+      const daysUntilRenewal = Math.ceil((renewalDate - now) / MS_PER_DAY);
+      return {
+        name: sub.name,
+        amount: sub.amount || 0,
+        customType: sub.customType,
+        renewalDate: sub.expiryDate,
+        daysUntilRenewal
+      };
+    })
+    .sort((a, b) => a.daysUntilRenewal - b.daysUntilRenewal);
+}
+
+function getExpenseByType(subscriptions, timezone) {
+  const now = getCurrentTimeInTimezone(timezone);
+  const parts = getTimezoneDateParts(now, timezone);
+  const currentYear = parts.year;
+
+  const typeMap = {};
+  let total = 0;
+
+  subscriptions.forEach(sub => {
+    if (!sub.amount || sub.amount <= 0) return;
+    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
+    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+    if (paymentParts.year === currentYear) {
+      const type = sub.customType || '未分类';
+      typeMap[type] = (typeMap[type] || 0) + sub.amount;
+      total += sub.amount;
+    }
+  });
+
+  return Object.entries(typeMap)
+    .map(([type, amount]) => ({
+      type,
+      amount,
+      percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+function getExpenseByCategory(subscriptions, timezone) {
+  const now = getCurrentTimeInTimezone(timezone);
+  const parts = getTimezoneDateParts(now, timezone);
+  const currentYear = parts.year;
+
+  const categoryMap = {};
+  let total = 0;
+
+  subscriptions.forEach(sub => {
+    if (!sub.amount || sub.amount <= 0) return;
+    const paymentDate = new Date(sub.lastPaymentDate || sub.startDate || sub.createdAt || sub.expiryDate);
+    const paymentParts = getTimezoneDateParts(paymentDate, timezone);
+    if (paymentParts.year === currentYear) {
+      const categories = sub.category ? sub.category.split(CATEGORY_SEPARATOR_REGEX).filter(c => c.trim()) : ['未分类'];
+      categories.forEach(category => {
+        const cat = category.trim() || '未分类';
+        categoryMap[cat] = (categoryMap[cat] || 0) + sub.amount / categories.length;
+      });
+      total += sub.amount;
+    }
+  });
+
+  return Object.entries(categoryMap)
+    .map(([category, amount]) => ({
+      category,
+      amount,
+      percentage: total > 0 ? Math.round((amount / total) * 100) : 0
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
