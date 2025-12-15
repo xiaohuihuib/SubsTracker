@@ -2423,9 +2423,10 @@ const lunarBiz = {
                 const formattedTime = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
                 const noteHtml = payment.note ? '<div class="mt-1 ml-6 text-sm text-gray-600">' + payment.note + '</div>' : '';
+                const paymentDataJson = JSON.stringify(payment).replace(/"/g, '&quot;');
                 return \`
                     <div class="border-b border-gray-200 py-3 hover:bg-gray-50">
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start gap-3">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <i class="fas fa-calendar-alt text-gray-400"></i>
@@ -2434,8 +2435,22 @@ const lunarBiz = {
                                 </div>
                                 \${noteHtml}
                             </div>
-                            <div class="text-right">
-                                <div class="text-lg font-bold text-gray-900">¥\${payment.amount.toFixed(2)}</div>
+                            <div class="flex items-center gap-3">
+                                <div class="text-right">
+                                    <div class="text-lg font-bold text-gray-900">¥\${payment.amount.toFixed(2)}</div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="editPaymentRecord('\${subscription.id}', '\${payment.id}')"
+                                            class="text-blue-600 hover:text-blue-800 px-2 py-1"
+                                            title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deletePaymentRecord('\${subscription.id}', '\${payment.id}')"
+                                            class="text-red-600 hover:text-red-800 px-2 py-1"
+                                            title="删除">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2489,6 +2504,175 @@ const lunarBiz = {
             return;
         }
         const modal = document.getElementById('paymentHistoryModal');
+        if (modal) {
+            modal.remove();
+        }
+    };
+
+    window.deletePaymentRecord = async function(subscriptionId, paymentId) {
+        if (!confirm('确认删除此支付记录？删除后将重新计算统计数据。')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(\`/api/subscriptions/\${subscriptionId}/payments/\${paymentId}\`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(result.message || '支付记录已删除', 'success');
+                // 关闭当前模态框
+                closePaymentHistoryModal();
+                // 刷新订阅列表
+                await loadSubscriptions(false);
+            } else {
+                showToast(result.message || '删除失败', 'error');
+            }
+        } catch (error) {
+            console.error('删除支付记录失败:', error);
+            showToast('删除时发生错误', 'error');
+        }
+    };
+
+    window.editPaymentRecord = async function(subscriptionId, paymentId) {
+        try {
+            // 获取订阅信息
+            const subResponse = await fetch(\`/api/subscriptions/\${subscriptionId}\`);
+            const subscription = await subResponse.json();
+
+            // 获取支付历史
+            const payResponse = await fetch(\`/api/subscriptions/\${subscriptionId}/payments\`);
+            const payResult = await payResponse.json();
+
+            const payment = payResult.payments.find(p => p.id === paymentId);
+            if (!payment) {
+                showToast('支付记录不存在', 'error');
+                return;
+            }
+
+            showEditPaymentModal(subscription, payment);
+        } catch (error) {
+            console.error('获取支付记录失败:', error);
+            showToast('获取支付记录时发生错误', 'error');
+        }
+    };
+
+    function showEditPaymentModal(subscription, payment) {
+        const paymentDate = new Date(payment.date);
+        const formattedDate = paymentDate.toISOString().split('T')[0];
+
+        const modalHtml = \`
+            <div id="editPaymentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closeEditPaymentModal(event)">
+                <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <h3 class="text-xl font-semibold text-gray-900">
+                            <i class="fas fa-edit mr-2"></i>编辑支付记录
+                        </h3>
+                        <button onclick="closeEditPaymentModal()" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <form id="editPaymentForm" class="mt-4 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">订阅名称</label>
+                            <input type="text" value="\${subscription.name}" disabled
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">支付日期</label>
+                            <input type="date" id="editPaymentDate" value="\${formattedDate}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">支付金额 (¥)</label>
+                            <input type="number" id="editPaymentAmount" value="\${payment.amount}" step="0.01" min="0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                            <input type="text" id="editPaymentNote" value="\${payment.note || ''}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <div class="flex justify-end space-x-3 pt-3">
+                            <button type="button" onclick="closeEditPaymentModal()"
+                                    class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md">
+                                取消
+                            </button>
+                            <button type="submit" id="confirmEditBtn"
+                                    class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md">
+                                <i class="fas fa-check mr-1"></i>保存
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        \`;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // 保存信息到表单
+        document.getElementById('editPaymentForm').dataset.subscriptionId = subscription.id;
+        document.getElementById('editPaymentForm').dataset.paymentId = payment.id;
+
+        // 绑定表单提交事件
+        document.getElementById('editPaymentForm').addEventListener('submit', handleEditPaymentSubmit);
+    }
+
+    async function handleEditPaymentSubmit(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const subscriptionId = form.dataset.subscriptionId;
+        const paymentId = form.dataset.paymentId;
+        const confirmBtn = document.getElementById('confirmEditBtn');
+
+        const paymentData = {
+            date: document.getElementById('editPaymentDate').value,
+            amount: parseFloat(document.getElementById('editPaymentAmount').value) || 0,
+            note: document.getElementById('editPaymentNote').value
+        };
+
+        const originalBtnContent = confirmBtn.innerHTML;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>保存中...';
+        confirmBtn.disabled = true;
+
+        try {
+            const response = await fetch(\`/api/subscriptions/\${subscriptionId}/payments/\${paymentId}\`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData)
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(result.message || '支付记录已更新', 'success');
+                closeEditPaymentModal();
+                closePaymentHistoryModal();
+                await loadSubscriptions(false);
+            } else {
+                showToast(result.message || '更新失败', 'error');
+                confirmBtn.innerHTML = originalBtnContent;
+                confirmBtn.disabled = false;
+            }
+        } catch (error) {
+            console.error('更新支付记录失败:', error);
+            showToast('更新时发生错误', 'error');
+            confirmBtn.innerHTML = originalBtnContent;
+            confirmBtn.disabled = false;
+        }
+    }
+
+    window.closeEditPaymentModal = function(event) {
+        if (event && event.target.id !== 'editPaymentModal') {
+            return;
+        }
+        const modal = document.getElementById('editPaymentModal');
         if (modal) {
             modal.remove();
         }
@@ -4963,6 +5147,19 @@ const api = {
         return new Response(JSON.stringify({ success: true, payments: subscription.paymentHistory || [] }), { headers: { 'Content-Type': 'application/json' } });
       }
 
+      if (parts[3] === 'payments' && parts[4] && method === 'DELETE') {
+        const paymentId = parts[4];
+        const result = await deletePaymentRecord(id, paymentId, env);
+        return new Response(JSON.stringify(result), { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
+      if (parts[3] === 'payments' && parts[4] && method === 'PUT') {
+        const paymentId = parts[4];
+        const paymentData = await request.json();
+        const result = await updatePaymentRecord(id, paymentId, paymentData, env);
+        return new Response(JSON.stringify(result), { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
       if (method === 'GET') {
         const subscription = await getSubscription(id, env);
 
@@ -5514,6 +5711,96 @@ async function manualRenewSubscription(id, env, options = {}) {
   } catch (error) {
     console.error('手动续订失败:', error);
     return { success: false, message: '续订失败: ' + error.message };
+  }
+}
+
+async function deletePaymentRecord(subscriptionId, paymentId, env) {
+  try {
+    const subscriptions = await getAllSubscriptions(env);
+    const index = subscriptions.findIndex(s => s.id === subscriptionId);
+
+    if (index === -1) {
+      return { success: false, message: '订阅不存在' };
+    }
+
+    const subscription = subscriptions[index];
+    const paymentHistory = subscription.paymentHistory || [];
+    const paymentIndex = paymentHistory.findIndex(p => p.id === paymentId);
+
+    if (paymentIndex === -1) {
+      return { success: false, message: '支付记录不存在' };
+    }
+
+    // 删除支付记录
+    paymentHistory.splice(paymentIndex, 1);
+
+    // 更新 lastPaymentDate 为最新的支付记录日期
+    let newLastPaymentDate = subscription.lastPaymentDate;
+    if (paymentHistory.length > 0) {
+      // 找到最新的支付记录
+      const sortedPayments = [...paymentHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+      newLastPaymentDate = sortedPayments[0].date;
+    } else {
+      // 如果没有支付记录了，使用开始日期或创建日期
+      newLastPaymentDate = subscription.startDate || subscription.createdAt || subscription.expiryDate;
+    }
+
+    subscriptions[index] = {
+      ...subscription,
+      paymentHistory,
+      lastPaymentDate: newLastPaymentDate
+    };
+
+    await env.SUBSCRIPTIONS_KV.put('subscriptions', JSON.stringify(subscriptions));
+
+    return { success: true, subscription: subscriptions[index], message: '支付记录已删除' };
+  } catch (error) {
+    console.error('删除支付记录失败:', error);
+    return { success: false, message: '删除失败: ' + error.message };
+  }
+}
+
+async function updatePaymentRecord(subscriptionId, paymentId, paymentData, env) {
+  try {
+    const subscriptions = await getAllSubscriptions(env);
+    const index = subscriptions.findIndex(s => s.id === subscriptionId);
+
+    if (index === -1) {
+      return { success: false, message: '订阅不存在' };
+    }
+
+    const subscription = subscriptions[index];
+    const paymentHistory = subscription.paymentHistory || [];
+    const paymentIndex = paymentHistory.findIndex(p => p.id === paymentId);
+
+    if (paymentIndex === -1) {
+      return { success: false, message: '支付记录不存在' };
+    }
+
+    // 更新支付记录
+    paymentHistory[paymentIndex] = {
+      ...paymentHistory[paymentIndex],
+      date: paymentData.date || paymentHistory[paymentIndex].date,
+      amount: paymentData.amount !== undefined ? paymentData.amount : paymentHistory[paymentIndex].amount,
+      note: paymentData.note !== undefined ? paymentData.note : paymentHistory[paymentIndex].note
+    };
+
+    // 更新 lastPaymentDate 为最新的支付记录日期
+    const sortedPayments = [...paymentHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const newLastPaymentDate = sortedPayments[0].date;
+
+    subscriptions[index] = {
+      ...subscription,
+      paymentHistory,
+      lastPaymentDate: newLastPaymentDate
+    };
+
+    await env.SUBSCRIPTIONS_KV.put('subscriptions', JSON.stringify(subscriptions));
+
+    return { success: true, subscription: subscriptions[index], message: '支付记录已更新' };
+  } catch (error) {
+    console.error('更新支付记录失败:', error);
+    return { success: false, message: '更新失败: ' + error.message };
   }
 }
 
