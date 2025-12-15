@@ -2199,31 +2199,184 @@ const lunarBiz = {
         const button = e.target.tagName === 'BUTTON' ? e.target : e.target.parentElement;
         const id = button.dataset.id;
 
-        if (!confirm('确认立即续订一个周期？这将更新订阅的到期日期。')) {
-            return;
+        try {
+            const response = await fetch('/api/subscriptions/' + id);
+            const subscription = await response.json();
+            showRenewFormModal(subscription);
+        } catch (error) {
+            console.error('获取订阅信息失败:', error);
+            showToast('获取订阅信息时发生错误', 'error');
         }
+    }
 
-        const originalContent = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>';
-        button.disabled = true;
+    function showRenewFormModal(subscription) {
+        const today = new Date().toISOString().split('T')[0];
+        const expiryDate = new Date(subscription.expiryDate);
+        const formattedExpiry = expiryDate.toLocaleDateString('zh-CN');
+        const defaultAmount = subscription.amount || 0;
+        const periodUnit = subscription.periodUnit === 'day' ? '天' :
+                          subscription.periodUnit === 'month' ? '月' : '年';
+
+        const modalHtml = \`
+            <div id="renewFormModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closeRenewFormModal(event)">
+                <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <h3 class="text-xl font-semibold text-gray-900">
+                            <i class="fas fa-sync-alt mr-2"></i>手动续订 - \${subscription.name}
+                        </h3>
+                        <button onclick="closeRenewFormModal()" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <form id="renewForm" class="mt-4 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">支付日期</label>
+                            <input type="date" id="renewPaymentDate" value="\${today}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">支付金额 (¥)</label>
+                            <input type="number" id="renewAmount" value="\${defaultAmount}" step="0.01" min="0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">续订周期数</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="number" id="renewPeriodMultiplier" value="1" min="1" max="120"
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                       oninput="updateNewExpiryPreview()">
+                                <span class="text-gray-600">\${periodUnit}</span>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">一次性续订多个周期（如12个月）</p>
+                        </div>
+
+                        <div class="bg-blue-50 rounded-lg p-3">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-gray-600">当前到期:</span>
+                                <span class="font-medium">\${formattedExpiry}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">新到期日:</span>
+                                <span class="font-medium text-blue-600" id="newExpiryPreview">计算中...</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">备注 (可选)</label>
+                            <input type="text" id="renewNote" placeholder="例如：年度优惠、价格调整"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        <div class="flex justify-end space-x-3 pt-3">
+                            <button type="button" onclick="closeRenewFormModal()"
+                                    class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md">
+                                取消
+                            </button>
+                            <button type="submit" id="confirmRenewBtn"
+                                    class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md">
+                                <i class="fas fa-check mr-1"></i>确认续订
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        \`;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // 保存订阅信息到表单
+        document.getElementById('renewForm').dataset.subscriptionId = subscription.id;
+        document.getElementById('renewForm').dataset.subscriptionData = JSON.stringify(subscription);
+
+        // 初始化新到期日预览
+        updateNewExpiryPreview();
+
+        // 绑定表单提交事件
+        document.getElementById('renewForm').addEventListener('submit', handleRenewFormSubmit);
+        document.getElementById('renewPeriodMultiplier').addEventListener('input', updateNewExpiryPreview);
+    }
+
+    function updateNewExpiryPreview() {
+        const form = document.getElementById('renewForm');
+        if (!form) return;
+
+        const subscription = JSON.parse(form.dataset.subscriptionData);
+        const multiplier = parseInt(document.getElementById('renewPeriodMultiplier').value) || 1;
+
+        const expiryDate = new Date(subscription.expiryDate);
+        const newExpiryDate = new Date(expiryDate);
+
+        if (subscription.useLunar) {
+            // 农历续订的预览比较复杂，简化显示
+            document.getElementById('newExpiryPreview').textContent = '农历计算中...';
+        } else {
+            const totalPeriodValue = subscription.periodValue * multiplier;
+            if (subscription.periodUnit === 'day') {
+                newExpiryDate.setDate(expiryDate.getDate() + totalPeriodValue);
+            } else if (subscription.periodUnit === 'month') {
+                newExpiryDate.setMonth(expiryDate.getMonth() + totalPeriodValue);
+            } else if (subscription.periodUnit === 'year') {
+                newExpiryDate.setFullYear(expiryDate.getFullYear() + totalPeriodValue);
+            }
+            document.getElementById('newExpiryPreview').textContent = newExpiryDate.toLocaleDateString('zh-CN');
+        }
+    }
+
+    async function handleRenewFormSubmit(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const subscriptionId = form.dataset.subscriptionId;
+        const confirmBtn = document.getElementById('confirmRenewBtn');
+
+        const options = {
+            paymentDate: document.getElementById('renewPaymentDate').value,
+            amount: parseFloat(document.getElementById('renewAmount').value) || 0,
+            periodMultiplier: parseInt(document.getElementById('renewPeriodMultiplier').value) || 1,
+            note: document.getElementById('renewNote').value || '手动续订'
+        };
+
+        const originalBtnContent = confirmBtn.innerHTML;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>续订中...';
+        confirmBtn.disabled = true;
 
         try {
-            const response = await fetch('/api/subscriptions/' + id + '/renew', { method: 'POST' });
+            const response = await fetch('/api/subscriptions/' + subscriptionId + '/renew', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(options)
+            });
             const result = await response.json();
+
             if (result.success) {
                 showToast(result.message || '续订成功', 'success');
+                closeRenewFormModal();
                 await loadSubscriptions(false);
             } else {
                 showToast(result.message || '续订失败', 'error');
+                confirmBtn.innerHTML = originalBtnContent;
+                confirmBtn.disabled = false;
             }
         } catch (error) {
             console.error('续订失败:', error);
             showToast('续订时发生错误', 'error');
-        } finally {
-            button.innerHTML = originalContent;
-            button.disabled = false;
+            confirmBtn.innerHTML = originalBtnContent;
+            confirmBtn.disabled = false;
         }
     }
+
+    window.closeRenewFormModal = function(event) {
+        if (event && event.target.id !== 'renewFormModal') {
+            return;
+        }
+        const modal = document.getElementById('renewFormModal');
+        if (modal) {
+            modal.remove();
+        }
+    };
 
     async function viewPaymentHistory(e) {
         const button = e.target.tagName === 'BUTTON' ? e.target : e.target.parentElement;
@@ -4791,7 +4944,14 @@ const api = {
       }
 
       if (parts[3] === 'renew' && method === 'POST') {
-        const result = await manualRenewSubscription(id, env);
+        let options = {};
+        try {
+          const body = await request.json();
+          options = body || {};
+        } catch (e) {
+          // 如果没有请求体，使用默认空对象
+        }
+        const result = await manualRenewSubscription(id, env, options);
         return new Response(JSON.stringify(result), { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json' } });
       }
 
@@ -5277,7 +5437,7 @@ async function deleteSubscription(id, env) {
   }
 }
 
-async function manualRenewSubscription(id, env) {
+async function manualRenewSubscription(id, env, options = {}) {
   try {
     const subscriptions = await getAllSubscriptions(env);
     const index = subscriptions.findIndex(s => s.id === id);
@@ -5296,6 +5456,12 @@ async function manualRenewSubscription(id, env) {
     const timezone = config?.TIMEZONE || 'UTC';
     const currentTime = getCurrentTimeInTimezone(timezone);
 
+    // 支持自定义参数
+    const paymentDate = options.paymentDate ? new Date(options.paymentDate) : currentTime;
+    const amount = options.amount !== undefined ? options.amount : subscription.amount || 0;
+    const periodMultiplier = options.periodMultiplier || 1; // 支持续订多个周期
+    const note = options.note || '手动续订';
+
     let expiryDate = new Date(subscription.expiryDate);
     let newExpiryDate;
 
@@ -5305,26 +5471,31 @@ async function manualRenewSubscription(id, env) {
         expiryDate.getMonth() + 1,
         expiryDate.getDate()
       );
-      const nextLunar = lunarBiz.addLunarPeriod(lunar, subscription.periodValue, subscription.periodUnit);
+      // 支持多周期续订
+      let nextLunar = lunar;
+      for (let i = 0; i < periodMultiplier; i++) {
+        nextLunar = lunarBiz.addLunarPeriod(nextLunar, subscription.periodValue, subscription.periodUnit);
+      }
       const solar = lunarBiz.lunar2solar(nextLunar);
       newExpiryDate = new Date(solar.year, solar.month - 1, solar.day);
     } else {
       newExpiryDate = new Date(expiryDate);
+      const totalPeriodValue = subscription.periodValue * periodMultiplier;
       if (subscription.periodUnit === 'day') {
-        newExpiryDate.setDate(expiryDate.getDate() + subscription.periodValue);
+        newExpiryDate.setDate(expiryDate.getDate() + totalPeriodValue);
       } else if (subscription.periodUnit === 'month') {
-        newExpiryDate.setMonth(expiryDate.getMonth() + subscription.periodValue);
+        newExpiryDate.setMonth(expiryDate.getMonth() + totalPeriodValue);
       } else if (subscription.periodUnit === 'year') {
-        newExpiryDate.setFullYear(expiryDate.getFullYear() + subscription.periodValue);
+        newExpiryDate.setFullYear(expiryDate.getFullYear() + totalPeriodValue);
       }
     }
 
     const paymentRecord = {
       id: Date.now().toString(),
-      date: currentTime.toISOString(),
-      amount: subscription.amount || 0,
+      date: paymentDate.toISOString(),
+      amount: amount,
       type: 'manual',
-      note: '手动续订'
+      note: note
     };
 
     const paymentHistory = subscription.paymentHistory || [];
@@ -5333,7 +5504,7 @@ async function manualRenewSubscription(id, env) {
     subscriptions[index] = {
       ...subscription,
       expiryDate: newExpiryDate.toISOString(),
-      lastPaymentDate: currentTime.toISOString(),
+      lastPaymentDate: paymentDate.toISOString(),
       paymentHistory
     };
 
