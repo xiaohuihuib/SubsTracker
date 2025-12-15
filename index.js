@@ -2422,6 +2422,17 @@ const lunarBiz = {
                 const formattedDate = date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
                 const formattedTime = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
+                // 计费周期格式化
+                let periodHtml = '';
+                if (payment.periodStart && payment.periodEnd) {
+                    const periodStart = new Date(payment.periodStart);
+                    const periodEnd = new Date(payment.periodEnd);
+                    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+                    const startStr = periodStart.toLocaleDateString('zh-CN', options);
+                    const endStr = periodEnd.toLocaleDateString('zh-CN', options);
+                    periodHtml = '<div class="mt-1 ml-6 text-xs text-gray-500"><i class="fas fa-clock mr-1"></i>计费周期: ' + startStr + ' - ' + endStr + '</div>';
+                }
+
                 const noteHtml = payment.note ? '<div class="mt-1 ml-6 text-sm text-gray-600">' + payment.note + '</div>' : '';
                 const paymentDataJson = JSON.stringify(payment).replace(/"/g, '&quot;');
                 return \`
@@ -2433,6 +2444,7 @@ const lunarBiz = {
                                     <span class="font-medium">\${formattedDate} \${formattedTime}</span>
                                     <span class="px-2 py-1 rounded text-xs font-medium \${typeClass}">\${typeLabel}</span>
                                 </div>
+                                \${periodHtml}
                                 \${noteHtml}
                             </div>
                             <div class="flex items-center gap-3">
@@ -5506,7 +5518,9 @@ async function createSubscription(subscription, env) {
         date: initialPaymentDate,
         amount: subscription.amount,
         type: 'initial',
-        note: '初始订阅'
+        note: '初始订阅',
+        periodStart: subscription.startDate || initialPaymentDate,
+        periodEnd: subscription.expiryDate
       }] : [],
       isActive: subscription.isActive !== false,
       autoRenew: subscription.autoRenew !== false,
@@ -5692,7 +5706,9 @@ async function manualRenewSubscription(id, env, options = {}) {
       date: paymentDate.toISOString(),
       amount: amount,
       type: 'manual',
-      note: note
+      note: note,
+      periodStart: expiryDate.toISOString(),
+      periodEnd: newExpiryDate.toISOString()
     };
 
     const paymentHistory = subscription.paymentHistory || [];
@@ -5731,22 +5747,43 @@ async function deletePaymentRecord(subscriptionId, paymentId, env) {
       return { success: false, message: '支付记录不存在' };
     }
 
+    const deletedPayment = paymentHistory[paymentIndex];
+
     // 删除支付记录
     paymentHistory.splice(paymentIndex, 1);
 
-    // 更新 lastPaymentDate 为最新的支付记录日期
+    // 回退订阅周期和更新 lastPaymentDate
+    let newExpiryDate = subscription.expiryDate;
     let newLastPaymentDate = subscription.lastPaymentDate;
+
     if (paymentHistory.length > 0) {
-      // 找到最新的支付记录
-      const sortedPayments = [...paymentHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
-      newLastPaymentDate = sortedPayments[0].date;
+      // 找到剩余支付记录中 periodEnd 最晚的那条（最新的续订）
+      const sortedByPeriodEnd = [...paymentHistory].sort((a, b) => {
+        const dateA = a.periodEnd ? new Date(a.periodEnd) : new Date(0);
+        const dateB = b.periodEnd ? new Date(b.periodEnd) : new Date(0);
+        return dateB - dateA;
+      });
+
+      // 订阅的到期日期应该是最新续订的 periodEnd
+      if (sortedByPeriodEnd[0].periodEnd) {
+        newExpiryDate = sortedByPeriodEnd[0].periodEnd;
+      }
+
+      // 找到最新的支付记录日期
+      const sortedByDate = [...paymentHistory].sort((a, b) => new Date(b.date) - new Date(a.date));
+      newLastPaymentDate = sortedByDate[0].date;
     } else {
-      // 如果没有支付记录了，使用开始日期或创建日期
+      // 如果没有支付记录了，回退到初始状态
+      // expiryDate 保持不变或使用 periodStart（如果删除的记录有）
+      if (deletedPayment.periodStart) {
+        newExpiryDate = deletedPayment.periodStart;
+      }
       newLastPaymentDate = subscription.startDate || subscription.createdAt || subscription.expiryDate;
     }
 
     subscriptions[index] = {
       ...subscription,
+      expiryDate: newExpiryDate,
       paymentHistory,
       lastPaymentDate: newLastPaymentDate
     };
@@ -6505,7 +6542,9 @@ for (const subscription of subscriptions) {
         date: currentTime.toISOString(),
         amount: subscription.amount || 0,
         type: 'auto',
-        note: '自动续订'
+        note: '自动续订',
+        periodStart: expiryDate.toISOString(),
+        periodEnd: newExpiryDate.toISOString()
       };
 
       const paymentHistory = subscription.paymentHistory || [];
@@ -6576,7 +6615,9 @@ for (const subscription of subscriptions) {
         date: currentTime.toISOString(),
         amount: subscription.amount || 0,
         type: 'auto',
-        note: '自动续订'
+        note: '自动续订',
+        periodStart: expiryDate.toISOString(),
+        periodEnd: newExpiryDate.toISOString()
       };
 
       const paymentHistory = subscription.paymentHistory || [];
