@@ -2084,6 +2084,7 @@ const lunarBiz = {
           '<td data-label="操作" class="px-4 py-3">' +
             '<div class="action-buttons-wrapper">' +
               '<button class="edit btn-primary text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '"><i class="fas fa-edit mr-1"></i>编辑</button>' +
+              '<button class="view-history bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '" title="查看支付历史"><i class="fas fa-history mr-1"></i>历史</button>' +
               '<button class="test-notify btn-info text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '"><i class="fas fa-paper-plane mr-1"></i>测试</button>' +
               '<button class="renew-now btn-success text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '" title="立即续订一个周期"><i class="fas fa-sync-alt mr-1"></i>续订</button>' +
               '<button class="delete btn-danger text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '"><i class="fas fa-trash-alt mr-1"></i>删除</button>' +
@@ -2114,6 +2115,10 @@ const lunarBiz = {
 
       document.querySelectorAll('.renew-now').forEach(button => {
         button.addEventListener('click', renewSubscriptionNow);
+      });
+
+      document.querySelectorAll('.view-history').forEach(button => {
+        button.addEventListener('click', viewPaymentHistory);
       });
 
       attachHoverListeners();
@@ -2219,6 +2224,121 @@ const lunarBiz = {
             button.disabled = false;
         }
     }
+
+    async function viewPaymentHistory(e) {
+        const button = e.target.tagName === 'BUTTON' ? e.target : e.target.parentElement;
+        const id = button.dataset.id;
+
+        try {
+            const response = await fetch('/api/subscriptions/' + id + '/payments');
+            const result = await response.json();
+
+            if (!result.success) {
+                showToast(result.message || '获取支付历史失败', 'error');
+                return;
+            }
+
+            const payments = result.payments || [];
+            const subscriptionResponse = await fetch('/api/subscriptions/' + id);
+            const subscriptionData = await subscriptionResponse.json();
+            const subscription = subscriptionData;
+
+            showPaymentHistoryModal(subscription, payments);
+        } catch (error) {
+            console.error('获取支付历史失败:', error);
+            showToast('获取支付历史时发生错误', 'error');
+        }
+    }
+
+    function showPaymentHistoryModal(subscription, payments) {
+        const totalAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+        const paymentCount = payments.length;
+
+        let paymentsHtml = '';
+        if (payments.length === 0) {
+            paymentsHtml = '<div class="text-center text-gray-500 py-8">暂无支付记录</div>';
+        } else {
+            paymentsHtml = payments.reverse().map(payment => {
+                const typeLabel = payment.type === 'initial' ? '初始订阅' :
+                                payment.type === 'manual' ? '手动续订' :
+                                payment.type === 'auto' ? '自动续订' : '未知';
+                const typeClass = payment.type === 'initial' ? 'bg-blue-100 text-blue-800' :
+                                payment.type === 'manual' ? 'bg-green-100 text-green-800' :
+                                payment.type === 'auto' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800';
+                const date = new Date(payment.date);
+                const formattedDate = date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                const formattedTime = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="border-b border-gray-200 py-3 hover:bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-calendar-alt text-gray-400"></i>
+                                    <span class="font-medium">${formattedDate} ${formattedTime}</span>
+                                    <span class="px-2 py-1 rounded text-xs font-medium ${typeClass}">${typeLabel}</span>
+                                </div>
+                                ${payment.note ? `<div class="mt-1 ml-6 text-sm text-gray-600">${payment.note}</div>` : ''}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-gray-900">¥${payment.amount.toFixed(2)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        const modalHtml = `
+            <div id="paymentHistoryModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closePaymentHistoryModal(event)">
+                <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">
+                    <div class="flex justify-between items-center pb-3 border-b">
+                        <h3 class="text-xl font-semibold text-gray-900">
+                            <i class="fas fa-history mr-2"></i>${subscription.name} - 支付历史
+                        </h3>
+                        <button onclick="closePaymentHistoryModal()" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-times text-2xl"></i>
+                        </button>
+                    </div>
+
+                    <div class="mt-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">累计支出</div>
+                                <div class="text-2xl font-bold text-purple-600">¥${totalAmount.toFixed(2)}</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">支付次数</div>
+                                <div class="text-2xl font-bold text-blue-600">${paymentCount}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 max-h-96 overflow-y-auto">
+                        ${paymentsHtml}
+                    </div>
+
+                    <div class="mt-4 flex justify-end">
+                        <button onclick="closePaymentHistoryModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    window.closePaymentHistoryModal = function(event) {
+        if (event && event.target.id !== 'paymentHistoryModal') {
+            return;
+        }
+        const modal = document.getElementById('paymentHistoryModal');
+        if (modal) {
+            modal.remove();
+        }
+    };
 
     async function toggleSubscriptionStatus(e) {
       const id = e.target.dataset.id || e.target.parentElement.dataset.id;
@@ -4674,6 +4794,14 @@ const api = {
         return new Response(JSON.stringify(result), { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json' } });
       }
 
+      if (parts[3] === 'payments' && method === 'GET') {
+        const subscription = await getSubscription(id, env);
+        if (!subscription) {
+          return new Response(JSON.stringify({ success: false, message: '订阅不存在' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({ success: true, payments: subscription.paymentHistory || [] }), { headers: { 'Content-Type': 'application/json' } });
+      }
+
       if (method === 'GET') {
         const subscription = await getSubscription(id, env);
 
@@ -4997,6 +5125,7 @@ async function createSubscription(subscription, env) {
 
     const reminderSetting = resolveReminderSetting(subscription);
 
+    const initialPaymentDate = subscription.startDate || currentTime.toISOString();
     const newSubscription = {
       id: Date.now().toString(), // 前端使用本地时间戳
       name: subscription.name,
@@ -5013,7 +5142,14 @@ async function createSubscription(subscription, env) {
       notes: subscription.notes || '',
       amount: subscription.amount || null,
       currency: 'CNY',
-      lastPaymentDate: subscription.startDate || currentTime.toISOString(),
+      lastPaymentDate: initialPaymentDate,
+      paymentHistory: subscription.amount ? [{
+        id: Date.now().toString(),
+        date: initialPaymentDate,
+        amount: subscription.amount,
+        type: 'initial',
+        note: '初始订阅'
+      }] : [],
       isActive: subscription.isActive !== false,
       autoRenew: subscription.autoRenew !== false,
       useLunar: useLunar,
@@ -5182,10 +5318,22 @@ async function manualRenewSubscription(id, env) {
       }
     }
 
+    const paymentRecord = {
+      id: Date.now().toString(),
+      date: currentTime.toISOString(),
+      amount: subscription.amount || 0,
+      type: 'manual',
+      note: '手动续订'
+    };
+
+    const paymentHistory = subscription.paymentHistory || [];
+    paymentHistory.push(paymentRecord);
+
     subscriptions[index] = {
       ...subscription,
       expiryDate: newExpiryDate.toISOString(),
-      lastPaymentDate: currentTime.toISOString()
+      lastPaymentDate: currentTime.toISOString(),
+      paymentHistory
     };
 
     await env.SUBSCRIPTIONS_KV.put('subscriptions', JSON.stringify(subscriptions));
@@ -5893,10 +6041,22 @@ for (const subscription of subscriptions) {
       diffMs = newExpiryDate.getTime() - currentTime.getTime();
       diffHours = diffMs / MS_PER_HOUR;
 
+      const paymentRecord = {
+        id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+        date: currentTime.toISOString(),
+        amount: subscription.amount || 0,
+        type: 'auto',
+        note: '自动续订'
+      };
+
+      const paymentHistory = subscription.paymentHistory || [];
+      paymentHistory.push(paymentRecord);
+
       const updatedSubscription = {
         ...subscription,
         expiryDate: newExpiryDate.toISOString(),
-        lastPaymentDate: currentTime.toISOString()
+        lastPaymentDate: currentTime.toISOString(),
+        paymentHistory
       };
       updatedSubscriptions.push(updatedSubscription);
       hasUpdates = true;
@@ -5952,10 +6112,22 @@ for (const subscription of subscriptions) {
       diffMs = newExpiryDate.getTime() - currentTime.getTime();
       diffHours = diffMs / MS_PER_HOUR;
 
+      const paymentRecord = {
+        id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
+        date: currentTime.toISOString(),
+        amount: subscription.amount || 0,
+        type: 'auto',
+        note: '自动续订'
+      };
+
+      const paymentHistory = subscription.paymentHistory || [];
+      paymentHistory.push(paymentRecord);
+
       const updatedSubscription = {
         ...subscription,
         expiryDate: newExpiryDate.toISOString(),
-        lastPaymentDate: currentTime.toISOString()
+        lastPaymentDate: currentTime.toISOString(),
+        paymentHistory
       };
       updatedSubscriptions.push(updatedSubscription);
       hasUpdates = true;
