@@ -2085,6 +2085,7 @@ const lunarBiz = {
             '<div class="action-buttons-wrapper">' +
               '<button class="edit btn-primary text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '"><i class="fas fa-edit mr-1"></i>编辑</button>' +
               '<button class="test-notify btn-info text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '"><i class="fas fa-paper-plane mr-1"></i>测试</button>' +
+              '<button class="renew-now btn-success text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '" title="立即续订一个周期"><i class="fas fa-sync-alt mr-1"></i>续订</button>' +
               '<button class="delete btn-danger text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '"><i class="fas fa-trash-alt mr-1"></i>删除</button>' +
               (subscription.isActive
                 ? '<button class="toggle-status btn-warning text-white px-2 py-1 rounded text-xs whitespace-nowrap" data-id="' + subscription.id + '" data-action="deactivate"><i class="fas fa-pause-circle mr-1"></i>停用</button>'
@@ -2109,6 +2110,10 @@ const lunarBiz = {
 
       document.querySelectorAll('.test-notify').forEach(button => {
         button.addEventListener('click', testSubscriptionNotification);
+      });
+
+      document.querySelectorAll('.renew-now').forEach(button => {
+        button.addEventListener('click', renewSubscriptionNow);
       });
 
       attachHoverListeners();
@@ -2184,7 +2189,37 @@ const lunarBiz = {
             button.disabled = false;
         }
     }
-    
+
+    async function renewSubscriptionNow(e) {
+        const button = e.target.tagName === 'BUTTON' ? e.target : e.target.parentElement;
+        const id = button.dataset.id;
+
+        if (!confirm('确认立即续订一个周期？这将更新订阅的到期日期。')) {
+            return;
+        }
+
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>';
+        button.disabled = true;
+
+        try {
+            const response = await fetch('/api/subscriptions/' + id + '/renew', { method: 'POST' });
+            const result = await response.json();
+            if (result.success) {
+                showToast(result.message || '续订成功', 'success');
+                await loadSubscriptions(false);
+            } else {
+                showToast(result.message || '续订失败', 'error');
+            }
+        } catch (error) {
+            console.error('续订失败:', error);
+            showToast('续订时发生错误', 'error');
+        } finally {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
+    }
+
     async function toggleSubscriptionStatus(e) {
       const id = e.target.dataset.id || e.target.parentElement.dataset.id;
       const action = e.target.dataset.action || e.target.parentElement.dataset.action;
@@ -4634,6 +4669,11 @@ const api = {
         return new Response(JSON.stringify(result), { status: result.success ? 200 : 500, headers: { 'Content-Type': 'application/json' } });
       }
 
+      if (parts[3] === 'renew' && method === 'POST') {
+        const result = await manualRenewSubscription(id, env);
+        return new Response(JSON.stringify(result), { status: result.success ? 200 : 400, headers: { 'Content-Type': 'application/json' } });
+      }
+
       if (method === 'GET') {
         const subscription = await getSubscription(id, env);
 
@@ -5097,6 +5137,63 @@ async function deleteSubscription(id, env) {
     return { success: true };
   } catch (error) {
     return { success: false, message: '删除订阅失败' };
+  }
+}
+
+async function manualRenewSubscription(id, env) {
+  try {
+    const subscriptions = await getAllSubscriptions(env);
+    const index = subscriptions.findIndex(s => s.id === id);
+
+    if (index === -1) {
+      return { success: false, message: '订阅不存在' };
+    }
+
+    const subscription = subscriptions[index];
+
+    if (!subscription.periodValue || !subscription.periodUnit) {
+      return { success: false, message: '订阅未设置续订周期' };
+    }
+
+    const config = await getConfig(env);
+    const timezone = config?.TIMEZONE || 'UTC';
+    const currentTime = getCurrentTimeInTimezone(timezone);
+
+    let expiryDate = new Date(subscription.expiryDate);
+    let newExpiryDate;
+
+    if (subscription.useLunar) {
+      const lunar = lunarCalendar.solar2lunar(
+        expiryDate.getFullYear(),
+        expiryDate.getMonth() + 1,
+        expiryDate.getDate()
+      );
+      const nextLunar = lunarBiz.addLunarPeriod(lunar, subscription.periodValue, subscription.periodUnit);
+      const solar = lunarBiz.lunar2solar(nextLunar);
+      newExpiryDate = new Date(solar.year, solar.month - 1, solar.day);
+    } else {
+      newExpiryDate = new Date(expiryDate);
+      if (subscription.periodUnit === 'day') {
+        newExpiryDate.setDate(expiryDate.getDate() + subscription.periodValue);
+      } else if (subscription.periodUnit === 'month') {
+        newExpiryDate.setMonth(expiryDate.getMonth() + subscription.periodValue);
+      } else if (subscription.periodUnit === 'year') {
+        newExpiryDate.setFullYear(expiryDate.getFullYear() + subscription.periodValue);
+      }
+    }
+
+    subscriptions[index] = {
+      ...subscription,
+      expiryDate: newExpiryDate.toISOString(),
+      lastPaymentDate: currentTime.toISOString()
+    };
+
+    await env.SUBSCRIPTIONS_KV.put('subscriptions', JSON.stringify(subscriptions));
+
+    return { success: true, subscription: subscriptions[index], message: '续订成功' };
+  } catch (error) {
+    console.error('手动续订失败:', error);
+    return { success: false, message: '续订失败: ' + error.message };
   }
 }
 
