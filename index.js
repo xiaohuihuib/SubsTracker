@@ -964,15 +964,45 @@ const adminPage = `
           
           <div>
             <label for="customType" class="block text-sm font-medium text-gray-700 mb-1">订阅类型</label>
-            <input type="text" id="customType" placeholder="例如：流媒体、云服务、软件、生日等"
+            <input type="text" id="customType" list="customTypeList" placeholder="选择或输入自定义类型"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            <datalist id="customTypeList">
+              <option value="流媒体">
+              <option value="视频平台">
+              <option value="音乐平台">
+              <option value="云服务">
+              <option value="软件订阅">
+              <option value="域名">
+              <option value="服务器">
+              <option value="会员服务">
+              <option value="学习平台">
+              <option value="健身/运动">
+              <option value="游戏">
+              <option value="新闻/杂志">
+              <option value="生日">
+              <option value="纪念日">
+              <option value="其他">
+            </datalist>
             <div class="error-message text-red-500"></div>
           </div>
 
           <div>
             <label for="category" class="block text-sm font-medium text-gray-700 mb-1">分类标签</label>
-            <input type="text" id="category" placeholder="例如：个人、家庭、公司"
+            <input type="text" id="category" list="categoryList" placeholder="选择或输入自定义标签"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            <datalist id="categoryList">
+              <option value="个人">
+              <option value="家庭">
+              <option value="工作">
+              <option value="公司">
+              <option value="娱乐">
+              <option value="学习">
+              <option value="开发">
+              <option value="生产力">
+              <option value="社交">
+              <option value="健康">
+              <option value="财务">
+            </datalist>
             <p class="mt-1 text-xs text-gray-500">可输入多个标签并使用"/"分隔，便于筛选和统计</p>
             <div class="error-message text-red-500"></div>
           </div>
