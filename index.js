@@ -2269,32 +2269,33 @@ const lunarBiz = {
                 const formattedDate = date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
                 const formattedTime = date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
-                return `
+                const noteHtml = payment.note ? '<div class="mt-1 ml-6 text-sm text-gray-600">' + payment.note + '</div>' : '';
+                return \`
                     <div class="border-b border-gray-200 py-3 hover:bg-gray-50">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2">
                                     <i class="fas fa-calendar-alt text-gray-400"></i>
-                                    <span class="font-medium">${formattedDate} ${formattedTime}</span>
-                                    <span class="px-2 py-1 rounded text-xs font-medium ${typeClass}">${typeLabel}</span>
+                                    <span class="font-medium">\${formattedDate} \${formattedTime}</span>
+                                    <span class="px-2 py-1 rounded text-xs font-medium \${typeClass}">\${typeLabel}</span>
                                 </div>
-                                ${payment.note ? `<div class="mt-1 ml-6 text-sm text-gray-600">${payment.note}</div>` : ''}
+                                \${noteHtml}
                             </div>
                             <div class="text-right">
-                                <div class="text-lg font-bold text-gray-900">¥${payment.amount.toFixed(2)}</div>
+                                <div class="text-lg font-bold text-gray-900">¥\${payment.amount.toFixed(2)}</div>
                             </div>
                         </div>
                     </div>
-                `;
+                \`;
             }).join('');
         }
 
-        const modalHtml = `
+        const modalHtml = \`
             <div id="paymentHistoryModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closePaymentHistoryModal(event)">
                 <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">
                     <div class="flex justify-between items-center pb-3 border-b">
                         <h3 class="text-xl font-semibold text-gray-900">
-                            <i class="fas fa-history mr-2"></i>${subscription.name} - 支付历史
+                            <i class="fas fa-history mr-2"></i>\${subscription.name} - 支付历史
                         </h3>
                         <button onclick="closePaymentHistoryModal()" class="text-gray-400 hover:text-gray-500">
                             <i class="fas fa-times text-2xl"></i>
@@ -2305,17 +2306,17 @@ const lunarBiz = {
                         <div class="grid grid-cols-2 gap-4">
                             <div class="text-center">
                                 <div class="text-sm text-gray-600">累计支出</div>
-                                <div class="text-2xl font-bold text-purple-600">¥${totalAmount.toFixed(2)}</div>
+                                <div class="text-2xl font-bold text-purple-600">¥\${totalAmount.toFixed(2)}</div>
                             </div>
                             <div class="text-center">
                                 <div class="text-sm text-gray-600">支付次数</div>
-                                <div class="text-2xl font-bold text-blue-600">${paymentCount}</div>
+                                <div class="text-2xl font-bold text-blue-600">\${paymentCount}</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="mt-4 max-h-96 overflow-y-auto">
-                        ${paymentsHtml}
+                        \${paymentsHtml}
                     </div>
 
                     <div class="mt-4 flex justify-end">
@@ -2325,7 +2326,7 @@ const lunarBiz = {
                     </div>
                 </div>
             </div>
-        `;
+        \`;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
