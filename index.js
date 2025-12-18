@@ -2989,7 +2989,7 @@ const lunarBiz = {
           return;
         }
 
-        const match = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        const match = value.match(/^(\\d{4})-(\\d{1,2})-(\\d{1,2})$/);
         if (!match) {
           if (typeof showToast === 'function') {
             showToast('日期格式需为 YYYY-MM-DD', 'warning');
