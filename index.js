@@ -1010,22 +1010,33 @@ const adminPage = `
 
         <!-- 金额 -->
         <div class="mb-4">
-          <label for="amount" class="block text-sm font-medium text-gray-700 mb-1">
-            金额（元）
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            费用设置
             <span class="text-gray-400 text-xs ml-1">可选</span>
           </label>
-          <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
-              ¥
-            </span>
-            <input
-              type="number"
-              id="amount"
-              step="0.01"
-              min="0"
-              placeholder="例如: 15.00"
-              class="pl-8 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
+          <div class="flex space-x-2">
+            <div class="w-1/3">
+              <select id="currency" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+                <option value="CNY" selected>CNY (¥)</option>
+                <option value="USD">USD ($)</option>
+                <option value="HKD">HKD (HK$)</option>
+                <option value="TWD">TWD (NT$)</option>
+                <option value="JPY">JPY (¥)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="KRW">KRW (₩)</option>
+              </select>
+            </div>
+            <div class="relative w-2/3">
+              <input
+                type="number"
+                id="amount"
+                step="0.01"
+                min="0"
+                placeholder="例如: 15.00"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
           </div>
           <p class="mt-1 text-xs text-gray-500">用于统计支出和生成仪表盘</p>
         </div>
@@ -2047,10 +2058,16 @@ const lunarBiz = {
           : (reminder.unit === 'hour' ? '<div class="text-xs text-gray-500 mt-1">小时级提醒</div>' : '');
         const reminderHtml = '<div><i class="fas fa-bell mr-1"></i>' + reminder.displayText + '</div>' + reminderExtra;
 
+        const currencySymbols = {
+          'CNY': '¥', 'USD': '$', 'HKD': 'HK$', 'TWD': 'NT$', 
+          'JPY': '¥', 'EUR': '€', 'GBP': '£', 'KRW': '₩'
+        };
+        const currencySymbol = currencySymbols[subscription.currency] || '¥';
+
         const amountHtml = subscription.amount
           ? '<div class="flex items-center gap-1">' +
-              '<i class="fas fa-yen-sign text-green-500"></i>' +
-              '<span class="text-sm font-medium text-gray-900">¥' + subscription.amount.toFixed(2) + '</span>' +
+              '<span class="text-xs text-gray-500 font-bold">' + currencySymbol + '</span>' +
+              '<span class="text-sm font-medium text-gray-900">' + subscription.amount.toFixed(2) + '</span>' +
             '</div>'
           : '<span class="text-xs text-gray-400">未设置</span>';
 
@@ -2729,6 +2746,7 @@ const lunarBiz = {
       document.getElementById('subscriptionModal').classList.remove('hidden');
 
       document.getElementById('subscriptionForm').reset();
+      document.getElementById('currency').value = 'CNY'; // 默认设置为CNY
       document.getElementById('subscriptionId').value = '';
       clearFieldErrors();
 
@@ -3409,6 +3427,7 @@ const lunarBiz = {
         customType: document.getElementById('customType').value.trim(),
         category: document.getElementById('category').value.trim(),
         notes: document.getElementById('notes').value.trim() || '',
+        currency: document.getElementById('currency').value, // 新增修改，表单提交时带上 currency 字段
         amount: document.getElementById('amount').value ? parseFloat(document.getElementById('amount').value) : null,
         isActive: document.getElementById('isActive').checked,
         autoRenew: document.getElementById('autoRenew').checked,
@@ -3472,6 +3491,7 @@ const lunarBiz = {
           document.getElementById('category').value = subscription.category || '';
           document.getElementById('notes').value = subscription.notes || '';
           document.getElementById('amount').value = subscription.amount || '';
+          document.getElementById('currency').value = subscription.currency || 'CNY'; // 默认设置为 CNY
           document.getElementById('isActive').checked = subscription.isActive !== false;
           document.getElementById('autoRenew').checked = subscription.autoRenew !== false;
           document.getElementById('startDate').value = subscription.startDate ? subscription.startDate.split('T')[0] : '';
@@ -4661,7 +4681,7 @@ function dashboardPage() {
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-6">
       <h2 class="text-2xl font-bold text-gray-800">📊 仪表板</h2>
-      <p class="text-sm text-gray-500 mt-1">订阅费用和活动概览</p>
+      <p class="text-sm text-gray-500 mt-1">订阅费用和活动概览（统计金额已折合为 CNY）</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6" id="statsGrid">
@@ -4703,7 +4723,7 @@ function dashboardPage() {
             <i class="fas fa-chart-bar text-purple-500"></i>
             <h3 class="text-lg font-medium text-gray-900">按类型支出排行</h3>
           </div>
-          <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">年度统计</span>
+          <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">年度统计 (折合CNY)</span>
         </div>
         <div class="p-6" id="expenseByType">
           <div class="loading-skeleton"></div>
@@ -4716,7 +4736,7 @@ function dashboardPage() {
             <i class="fas fa-folder text-green-500"></i>
             <h3 class="text-lg font-medium text-gray-900">按分类支出统计</h3>
           </div>
-          <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">年度统计</span>
+          <span class="px-3 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">年度统计 (折合CNY)</span>
         </div>
         <div class="p-6" id="expenseByCategory">
           <div class="loading-skeleton"></div>
@@ -4726,7 +4746,115 @@ function dashboardPage() {
   </div>
 
   <script>
-    async function loadDashboardData(){try{const r=await fetch('/api/dashboard/stats');const d=await r.json();if(!d.success)throw new Error(d.message||'加载失败');const data=d.data;document.getElementById('statsGrid').innerHTML=\`<div class="stat-card"><div class="stat-card-header">月度支出</div><div class="stat-card-value">¥\${data.monthlyExpense.amount.toFixed(2)}</div><div class="stat-card-subtitle">本月支出</div><div class="stat-card-trend \${data.monthlyExpense.trendDirection}"><i class="fas fa-arrow-\${data.monthlyExpense.trendDirection==='up'?'up':data.monthlyExpense.trendDirection==='down'?'down':'right'}"></i>\${data.monthlyExpense.trend}%</div></div><div class="stat-card"><div class="stat-card-header">年度支出</div><div class="stat-card-value">¥\${data.yearlyExpense.amount.toFixed(2)}</div><div class="stat-card-subtitle">月均支出</div><div class="stat-card-subtitle" style="margin-top:0.5rem">¥\${data.yearlyExpense.monthlyAverage.toFixed(2)}</div></div><div class="stat-card"><div class="stat-card-header">活跃订阅</div><div class="stat-card-value">\${data.activeSubscriptions.active}</div><div class="stat-card-subtitle">总订阅数: \${data.activeSubscriptions.total}</div>\${data.activeSubscriptions.expiringSoon>0?\`<div class="stat-card-trend down"><i class="fas fa-exclamation-circle"></i>\${data.activeSubscriptions.expiringSoon} 即将到期</div>\`:''}</div>\`;const rp=document.getElementById('recentPayments');rp.innerHTML=data.recentPayments.length===0?'<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">过去7天内没有支付记录</div></div>':data.recentPayments.map(s=>\`<div class="list-item"><div class="list-item-content"><div class="list-item-name">\${s.name}</div><div class="list-item-meta"><span><i class="fas fa-calendar"></i> 支付于:\${new Date(s.paymentDate).toLocaleDateString('zh-CN')}</span>\${s.customType?\`<span class="list-item-badge">\${s.customType}</span>\`:''}</div></div><div class="list-item-amount">¥\${(s.amount||0).toFixed(2)}</div></div>\`).join('');const ur=document.getElementById('upcomingRenewals');ur.innerHTML=data.upcomingRenewals.length===0?'<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">未来7天内没有即将续费的订阅</div></div>':data.upcomingRenewals.map(s=>\`<div class="list-item"><div class="list-item-content"><div class="list-item-name">\${s.name}</div><div class="list-item-meta"><span><i class="fas fa-clock"></i> 将于:\${new Date(s.renewalDate).toLocaleDateString('zh-CN')}</span><span style="color:#f59e0b;font-weight:600">\${s.daysUntilRenewal} 天后</span>\${s.customType?\`<span class="list-item-badge">\${s.customType}</span>\`:''}</div></div><div class="list-item-amount">¥\${(s.amount||0).toFixed(2)}</div></div>\`).join('');const et=document.getElementById('expenseByType');et.innerHTML=data.expenseByType.length===0?'<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">暂无支出数据</div></div>':data.expenseByType.map((item,i)=>\`<div class="ranking-item"><div class="ranking-item-header"><div class="ranking-item-name">\${item.type}</div><div class="ranking-item-value"><span class="ranking-item-amount">¥\${item.amount.toFixed(2)}</span><span class="ranking-item-percentage">\${item.percentage}%</span></div></div><div class="ranking-progress"><div class="ranking-progress-bar color-\${(i%5)+1}" style="width:\${item.percentage}%"></div></div></div>\`).join('');const ec=document.getElementById('expenseByCategory');ec.innerHTML=data.expenseByCategory.length===0?'<div class="empty-state"><div class="empty-state-icon">📂</div><div class="empty-state-text">暂无支出数据</div></div>':data.expenseByCategory.map((item,i)=>\`<div class="ranking-item"><div class="ranking-item-header"><div class="ranking-item-name">\${item.category}</div><div class="ranking-item-value"><span class="ranking-item-amount">¥\${item.amount.toFixed(2)}</span><span class="ranking-item-percentage">\${item.percentage}%</span></div></div><div class="ranking-progress"><div class="ranking-progress-bar color-\${(i%5)+1}" style="width:\${item.percentage}%"></div></div></div>\`).join('')}catch(e){console.error('加载仪表盘数据失败:',e);document.getElementById('statsGrid').innerHTML='<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">加载失败:'+e.message+'</div></div>'}}
+    // 定义货币符号映射
+    const currencySymbols = {
+      'CNY': '¥', 'USD': '$', 'HKD': 'HK$', 'TWD': 'NT$', 
+      'JPY': '¥', 'EUR': '€', 'GBP': '£', 'KRW': '₩'
+    };
+    function getSymbol(currency) {
+      return currencySymbols[currency] || '¥';
+    }
+
+    async function loadDashboardData(){
+      try {
+        const r=await fetch('/api/dashboard/stats');
+        const d=await r.json();
+        if(!d.success) throw new Error(d.message||'加载失败');
+        
+        const data=d.data;
+        document.getElementById('statsGrid').innerHTML=\`
+          <div class="stat-card">
+            <div class="stat-card-header">月度支出 (CNY)</div>
+            <div class="stat-card-value">¥\${data.monthlyExpense.amount.toFixed(2)}</div>
+            <div class="stat-card-subtitle">本月折合支出</div>
+            <div class="stat-card-trend \${data.monthlyExpense.trendDirection}">
+              <i class="fas fa-arrow-\${data.monthlyExpense.trendDirection==='up'?'up':data.monthlyExpense.trendDirection==='down'?'down':'right'}"></i>
+              \${data.monthlyExpense.trend}%
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">年度支出 (CNY)</div>
+            <div class="stat-card-value">¥\${data.yearlyExpense.amount.toFixed(2)}</div>
+            <div class="stat-card-subtitle">月均支出: ¥\${data.yearlyExpense.monthlyAverage.toFixed(2)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">活跃订阅</div>
+            <div class="stat-card-value">\${data.activeSubscriptions.active}</div>
+            <div class="stat-card-subtitle">总订阅数: \${data.activeSubscriptions.total}</div>
+            \${data.activeSubscriptions.expiringSoon>0?\`<div class="stat-card-trend down"><i class="fas fa-exclamation-circle"></i>\${data.activeSubscriptions.expiringSoon} 即将到期</div>\`:''}
+          </div>
+        \`;
+        
+        const rp=document.getElementById('recentPayments');
+        rp.innerHTML=data.recentPayments.length===0?'<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-text">过去7天内没有支付记录</div></div>':
+        data.recentPayments.map(s=>\`
+          <div class="list-item">
+            <div class="list-item-content">
+              <div class="list-item-name">\${s.name}</div>
+              <div class="list-item-meta">
+                <span><i class="fas fa-calendar"></i> \${new Date(s.paymentDate).toLocaleDateString('zh-CN')}</span>
+                \${s.customType?\`<span class="list-item-badge">\${s.customType}</span>\`:''}
+              </div>
+            </div>
+            <div class="list-item-amount">\${getSymbol(s.currency)}\${(s.amount||0).toFixed(2)}</div>
+          </div>
+        \`).join('');
+        
+        const ur=document.getElementById('upcomingRenewals');
+        ur.innerHTML=data.upcomingRenewals.length===0?'<div class="empty-state"><div class="empty-state-icon">✅</div><div class="empty-state-text">未来7天内没有即将续费的订阅</div></div>':
+        data.upcomingRenewals.map(s=>\`
+          <div class="list-item">
+            <div class="list-item-content">
+              <div class="list-item-name">\${s.name}</div>
+              <div class="list-item-meta">
+                <span><i class="fas fa-clock"></i> \${new Date(s.renewalDate).toLocaleDateString('zh-CN')}</span>
+                <span style="color:#f59e0b;font-weight:600">\${s.daysUntilRenewal} 天后</span>
+                \${s.customType?\`<span class="list-item-badge">\${s.customType}</span>\`:''}
+              </div>
+            </div>
+            <div class="list-item-amount">\${getSymbol(s.currency)}\${(s.amount||0).toFixed(2)}</div>
+          </div>
+        \`).join('');
+        
+        // 支出排行仍然显示 CNY
+        const et=document.getElementById('expenseByType');
+        et.innerHTML=data.expenseByType.length===0?'<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">暂无支出数据</div></div>':
+        data.expenseByType.map((item,i)=>\`
+          <div class="ranking-item">
+            <div class="ranking-item-header">
+              <div class="ranking-item-name">\${item.type}</div>
+              <div class="ranking-item-value">
+                <span class="ranking-item-amount">¥\${item.amount.toFixed(2)}</span>
+                <span class="ranking-item-percentage">\${item.percentage}%</span>
+              </div>
+            </div>
+            <div class="ranking-progress">
+              <div class="ranking-progress-bar color-\${(i%5)+1}" style="width:\${item.percentage}%"></div>
+            </div>
+          </div>
+        \`).join('');
+        
+        const ec=document.getElementById('expenseByCategory');
+        ec.innerHTML=data.expenseByCategory.length===0?'<div class="empty-state"><div class="empty-state-icon">📂</div><div class="empty-state-text">暂无支出数据</div></div>':
+        data.expenseByCategory.map((item,i)=>\`
+          <div class="ranking-item">
+            <div class="ranking-item-header">
+              <div class="ranking-item-name">\${item.category}</div>
+              <div class="ranking-item-value">
+                <span class="ranking-item-amount">¥\${item.amount.toFixed(2)}</span>
+                <span class="ranking-item-percentage">\${item.percentage}%</span>
+              </div>
+            </div>
+            <div class="ranking-progress">
+              <div class="ranking-progress-bar color-\${(i%5)+1}" style="width:\${item.percentage}%"></div>
+            </div>
+          </div>
+        \`).join('');
+      } catch(e){
+        console.error('加载仪表盘数据失败:',e);
+        document.getElementById('statsGrid').innerHTML='<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-text">加载失败:'+e.message+'</div></div>';
+      }
+    }
     loadDashboardData();
     setInterval(loadDashboardData, 60000);
   </script>
@@ -5512,7 +5640,7 @@ async function createSubscription(subscription, env) {
       reminderHours: reminderSetting.unit === 'hour' ? reminderSetting.value : undefined,
       notes: subscription.notes || '',
       amount: subscription.amount || null,
-      currency: 'CNY',
+      currency: subscription.currency || 'CNY', // 使用传入的币种，默认为CNY  
       lastPaymentDate: initialPaymentDate,
       paymentHistory: subscription.amount ? [{
         id: Date.now().toString(),
@@ -5601,6 +5729,26 @@ if (useLunar) {
     };
     const reminderSetting = resolveReminderSetting(reminderSource);
 
+    // --- 新增/修改逻辑开始 ---
+    // 获取旧的订阅信息以便比较
+    const oldSubscription = subscriptions[index];
+    const newAmount = subscription.amount !== undefined ? subscription.amount : oldSubscription.amount;
+    
+    let paymentHistory = oldSubscription.paymentHistory || [];
+    
+    // 核心修复：如果金额发生了变化，且存在初始支付记录，则同步更新初始支付记录的金额
+    // 这解决了"修改订阅金额后，仪表盘统计不更新"的问题
+    if (newAmount !== oldSubscription.amount) {
+      const initialPaymentIndex = paymentHistory.findIndex(p => p.type === 'initial');
+      if (initialPaymentIndex !== -1) {
+        paymentHistory[initialPaymentIndex] = {
+          ...paymentHistory[initialPaymentIndex],
+          amount: newAmount
+        };
+      }
+    }
+    // --- 新增/修改逻辑结束 ---
+
     subscriptions[index] = {
       ...subscriptions[index],
       name: subscription.name,
@@ -5615,9 +5763,10 @@ if (useLunar) {
       reminderDays: reminderSetting.unit === 'day' ? reminderSetting.value : undefined,
       reminderHours: reminderSetting.unit === 'hour' ? reminderSetting.value : undefined,
       notes: subscription.notes || '',
-      amount: subscription.amount !== undefined ? subscription.amount : subscriptions[index].amount,
-      currency: subscriptions[index].currency || 'CNY',
+      amount: newAmount, // 使用新的变量
+      currency: subscription.currency || subscriptions[index].currency || 'CNY', // 更新币种
       lastPaymentDate: subscriptions[index].lastPaymentDate || subscriptions[index].startDate || subscriptions[index].createdAt || currentTime.toISOString(),
+      paymentHistory: paymentHistory, // 保存更新后的支付历史
       isActive: subscription.isActive !== undefined ? subscription.isActive : subscriptions[index].isActive,
       autoRenew: subscription.autoRenew !== undefined ? subscription.autoRenew : (subscriptions[index].autoRenew !== undefined ? subscriptions[index].autoRenew : true),
       useLunar: useLunar,
@@ -6836,6 +6985,29 @@ export default {
 };
 
 // ==================== 仪表盘统计函数 ====================
+
+// 汇率配置 (以 CNY 为基准)
+// 您可以根据需要修改此处的汇率
+const EXCHANGE_RATES = {
+  'CNY': 1,
+  'USD': 6.98,
+  'HKD': 0.90,
+  'TWD': 0.22,
+  'JPY': 0.044,
+  'EUR': 8.16,
+  'GBP': 9.40,
+  'KRW': 0.0048
+};
+
+// 辅助函数：将金额转换为基准货币 (CNY)
+function convertToCNY(amount, currency) {
+  if (!amount || amount <= 0) return 0;
+  // 如果没有币种信息，默认视为 CNY
+  const code = currency || 'CNY';
+  const rate = EXCHANGE_RATES[code] || 1; 
+  return amount * rate;
+}
+
 function getPaymentCountInMonth(subscriptions, year, month, timezone) {
   let count = 0;
   subscriptions.forEach(sub => {
@@ -6859,7 +7031,6 @@ function calculateMonthlyExpense(subscriptions, timezone) {
   const currentMonth = parts.month;
 
   let amount = 0;
-  let currentMonthCount = 0;
 
   // 遍历所有订阅的支付历史
   subscriptions.forEach(sub => {
@@ -6869,8 +7040,8 @@ function calculateMonthlyExpense(subscriptions, timezone) {
       const paymentDate = new Date(payment.date);
       const paymentParts = getTimezoneDateParts(paymentDate, timezone);
       if (paymentParts.year === currentYear && paymentParts.month === currentMonth) {
-        amount += payment.amount;
-        currentMonthCount++;
+        // 【核心修改】使用 convertToCNY 进行汇率转换
+        amount += convertToCNY(payment.amount, sub.currency);
       }
     });
   });
@@ -6886,7 +7057,8 @@ function calculateMonthlyExpense(subscriptions, timezone) {
       const paymentDate = new Date(payment.date);
       const paymentParts = getTimezoneDateParts(paymentDate, timezone);
       if (paymentParts.year === lastMonthYear && paymentParts.month === lastMonth) {
-        lastMonthAmount += payment.amount;
+        // 【核心修改】使用 convertToCNY 进行汇率转换
+        lastMonthAmount += convertToCNY(payment.amount, sub.currency);
       }
     });
   });
@@ -6921,12 +7093,14 @@ function calculateYearlyExpense(subscriptions, timezone) {
       const paymentDate = new Date(payment.date);
       const paymentParts = getTimezoneDateParts(paymentDate, timezone);
       if (paymentParts.year === currentYear) {
-        amount += payment.amount;
+        // 【核心修改】使用 convertToCNY 进行汇率转换
+        amount += convertToCNY(payment.amount, sub.currency);
       }
     });
   });
 
-  const monthlyAverage = amount / parts.month;
+  // 简单的月均计算：总额 / 当前月份（或者12，取决于您的统计逻辑，此处保持原逻辑）
+  const monthlyAverage = amount / parts.month; 
   return { amount, monthlyAverage };
 }
 
@@ -6946,6 +7120,7 @@ function getRecentPayments(subscriptions, timezone) {
         recentPayments.push({
           name: sub.name,
           amount: payment.amount,
+          currency: sub.currency || 'CNY', // 【核心修改】传递币种给前端显示
           customType: sub.customType,
           paymentDate: payment.date,
           note: payment.note
@@ -6973,6 +7148,7 @@ function getUpcomingRenewals(subscriptions, timezone) {
       return {
         name: sub.name,
         amount: sub.amount || 0,
+        currency: sub.currency || 'CNY', // 【核心修改】传递币种给前端显示
         customType: sub.customType,
         renewalDate: sub.expiryDate,
         daysUntilRenewal
@@ -6998,8 +7174,11 @@ function getExpenseByType(subscriptions, timezone) {
       const paymentParts = getTimezoneDateParts(paymentDate, timezone);
       if (paymentParts.year === currentYear) {
         const type = sub.customType || '未分类';
-        typeMap[type] = (typeMap[type] || 0) + payment.amount;
-        total += payment.amount;
+        // 【核心修改】先转换为 CNY 再统计
+        const amountCNY = convertToCNY(payment.amount, sub.currency);
+        
+        typeMap[type] = (typeMap[type] || 0) + amountCNY;
+        total += amountCNY;
       }
     });
   });
@@ -7030,11 +7209,15 @@ function getExpenseByCategory(subscriptions, timezone) {
       const paymentParts = getTimezoneDateParts(paymentDate, timezone);
       if (paymentParts.year === currentYear) {
         const categories = sub.category ? sub.category.split(CATEGORY_SEPARATOR_REGEX).filter(c => c.trim()) : ['未分类'];
+        
+        // 【核心修改】先转换为 CNY 再分配给各个分类
+        const amountCNY = convertToCNY(payment.amount, sub.currency);
+        
         categories.forEach(category => {
           const cat = category.trim() || '未分类';
-          categoryMap[cat] = (categoryMap[cat] || 0) + payment.amount / categories.length;
+          categoryMap[cat] = (categoryMap[cat] || 0) + amountCNY / categories.length;
         });
-        total += payment.amount;
+        total += amountCNY;
       }
     });
   });
