@@ -2269,73 +2269,82 @@ const lunarBiz = {
         const periodUnit = subscription.periodUnit === 'day' ? '天' :
                           subscription.periodUnit === 'month' ? '月' : '年';
 
-        const modalHtml = \`
-            <div id="renewFormModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closeRenewFormModal(event)">
-                <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">
-                    <div class="flex justify-between items-center pb-3 border-b">
-                        <h3 class="text-xl font-semibold text-gray-900">
-                            <i class="fas fa-sync-alt mr-2"></i>手动续订 - \${subscription.name}
-                        </h3>
-                        <button onclick="closeRenewFormModal()" class="text-gray-400 hover:text-gray-500">
-                            <i class="fas fa-times text-2xl"></i>
-                        </button>
-                    </div>
+        // 获取动态货币符号
+        const currencySymbols = {
+          'CNY': '¥', 'USD': '$', 'HKD': 'HK$', 'TWD': 'NT$', 
+          'JPY': '¥', 'EUR': '€', 'GBP': '£', 'KRW': '₩'
+        };
+        const currency = subscription.currency || 'CNY';
+        const symbol = currencySymbols[currency] || '¥';
+        const currencyLabel = "(" + currency + " " + symbol + ")";
 
-                    <form id="renewForm" class="mt-4 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">支付日期</label>
-                            <input type="date" id="renewPaymentDate" value="\${today}"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">支付金额 (¥)</label>
-                            <input type="number" id="renewAmount" value="\${defaultAmount}" step="0.01" min="0"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">续订周期数</label>
-                            <div class="flex items-center space-x-2">
-                                <input type="number" id="renewPeriodMultiplier" value="1" min="1" max="120"
-                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                       oninput="updateNewExpiryPreview()">
-                                <span class="text-gray-600">\${periodUnit}</span>
-                            </div>
-                            <p class="mt-1 text-xs text-gray-500">一次性续订多个周期（如12个月）</p>
-                        </div>
-
-                        <div class="bg-blue-50 rounded-lg p-3">
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="text-gray-600">当前到期:</span>
-                                <span class="font-medium">\${formattedExpiry}</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">新到期日:</span>
-                                <span class="font-medium text-blue-600" id="newExpiryPreview">计算中...</span>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">备注 (可选)</label>
-                            <input type="text" id="renewNote" placeholder="例如：年度优惠、价格调整"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
-                        </div>
-
-                        <div class="flex justify-end space-x-3 pt-3">
-                            <button type="button" onclick="closeRenewFormModal()"
-                                    class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md">
-                                取消
-                            </button>
-                            <button type="submit" id="confirmRenewBtn"
-                                    class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md">
-                                <i class="fas fa-check mr-1"></i>确认续订
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        \`;
+        // 【修复】使用单引号和 + 号拼接 HTML，避免反引号嵌套导致的语法错误
+        const modalHtml = 
+            '<div id="renewFormModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closeRenewFormModal(event)">' +
+            '    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">' +
+            '        <div class="flex justify-between items-center pb-3 border-b">' +
+            '            <h3 class="text-xl font-semibold text-gray-900">' +
+            '                <i class="fas fa-sync-alt mr-2"></i>手动续订 - ' + subscription.name +
+            '            </h3>' +
+            '            <button onclick="closeRenewFormModal()" class="text-gray-400 hover:text-gray-500">' +
+            '                <i class="fas fa-times text-2xl"></i>' +
+            '            </button>' +
+            '        </div>' +
+            '' +
+            '        <form id="renewForm" class="mt-4 space-y-4">' +
+            '            <div>' +
+            '                <label class="block text-sm font-medium text-gray-700 mb-1">支付日期</label>' +
+            '                <input type="date" id="renewPaymentDate" value="' + today + '"' +
+            '                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">' +
+            '            </div>' +
+            '' +
+            '            <div>' +
+            '                <label class="block text-sm font-medium text-gray-700 mb-1">支付金额 ' + currencyLabel + '</label>' +
+            '                <input type="number" id="renewAmount" value="' + defaultAmount + '" step="0.01" min="0"' +
+            '                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">' +
+            '            </div>' +
+            '' +
+            '            <div>' +
+            '                <label class="block text-sm font-medium text-gray-700 mb-1">续订周期数</label>' +
+            '                <div class="flex items-center space-x-2">' +
+            '                    <input type="number" id="renewPeriodMultiplier" value="1" min="1" max="120"' +
+            '                           class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"' +
+            '                           oninput="updateNewExpiryPreview()">' +
+            '                    <span class="text-gray-600">' + periodUnit + '</span>' +
+            '                </div>' +
+            '                <p class="mt-1 text-xs text-gray-500">一次性续订多个周期（如12个月）</p>' +
+            '            </div>' +
+            '' +
+            '            <div class="bg-blue-50 rounded-lg p-3">' +
+            '                <div class="flex justify-between text-sm mb-1">' +
+            '                    <span class="text-gray-600">当前到期:</span>' +
+            '                    <span class="font-medium">' + formattedExpiry + '</span>' +
+            '                </div>' +
+            '                <div class="flex justify-between text-sm">' +
+            '                    <span class="text-gray-600">新到期日:</span>' +
+            '                    <span class="font-medium text-blue-600" id="newExpiryPreview">计算中...</span>' +
+            '                </div>' +
+            '            </div>' +
+            '' +
+            '            <div>' +
+            '                <label class="block text-sm font-medium text-gray-700 mb-1">备注 (可选)</label>' +
+            '                <input type="text" id="renewNote" placeholder="例如：年度优惠、价格调整"' +
+            '                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">' +
+            '            </div>' +
+            '' +
+            '            <div class="flex justify-end space-x-3 pt-3">' +
+            '                <button type="button" onclick="closeRenewFormModal()"' +
+            '                        class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md">' +
+            '                    取消' +
+            '                </button>' +
+            '                <button type="submit" id="confirmRenewBtn"' +
+            '                        class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md">' +
+            '                    <i class="fas fa-check mr-1"></i>确认续订' +
+            '                </button>' +
+            '            </div>' +
+            '        </form>' +
+            '    </div>' +
+            '</div>';
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -7219,12 +7228,12 @@ function getExpenseByType(subscriptions, timezone) {
   });
 
   return Object.entries(typeMap)
-    。map(([type, amount]) => ({
+    .map(([type, amount]) => ({
       type,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    。sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => b.amount - a.amount);
 }
 
 function getExpenseByCategory(subscriptions, timezone) {
@@ -7258,10 +7267,10 @@ function getExpenseByCategory(subscriptions, timezone) {
   });
 
   return Object.entries(categoryMap)
-    。map(([category, amount]) => ({
+    .map(([category, amount]) => ({
       category,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    。sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => b.amount - a.amount);
 }
