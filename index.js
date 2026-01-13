@@ -2263,9 +2263,36 @@ const lunarBiz = {
 
     function showRenewFormModal(subscription) {
         const today = new Date().toISOString().split('T')[0];
-        const expiryDate = new Date(subscription.expiryDate);
-        const formattedExpiry = expiryDate.toLocaleDateString('zh-CN');
+        
+        // 获取当前到期日的显示文本
+        let currentExpiryDisplay = '无';
+        if (subscription.expiryDate) {
+            const datePart = subscription.expiryDate.split('T')[0];
+            
+            currentExpiryDisplay = datePart;
+            
+            // 只有当订阅类型明确为“使用农历”时，才计算并显示农历日期文本
+            if (subscription.useLunar) {
+                try {
+                    const parts = datePart.split('-');
+                    const y = parseInt(parts[0], 10);
+                    const m = parseInt(parts[1], 10);
+                    const d = parseInt(parts[2], 10);
+                    
+                    const lunarObj = lunarCalendar.solar2lunar(y, m, d);
+                    if (lunarObj) {
+                        // 【修改点】统一格式：移除 span 样式标签，增加"农历:"前缀，字体大小将自动继承父级
+                        currentExpiryDisplay += ' (农历: ' + lunarObj.fullStr + ')';
+                    }
+                } catch (e) {
+                    console.error('农历计算失败', e);
+                }
+            }
+        }
+
         const defaultAmount = subscription.amount || 0;
+        
+        // 保留变量定义，但下方HTML中使用静态"个"
         const periodUnit = subscription.periodUnit === 'day' ? '天' :
                           subscription.periodUnit === 'month' ? '月' : '年';
 
@@ -2277,8 +2304,11 @@ const lunarBiz = {
         const currency = subscription.currency || 'CNY';
         const symbol = currencySymbols[currency] || '¥';
         const currencyLabel = "(" + currency + " " + symbol + ")";
+        
+        // 农历标记：绝对定位，固定在右上角
+        const lunarBadge = subscription.useLunar ? 
+            '<span class="absolute top-2 right-2 text-[10px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">农历周期</span>' : '';
 
-        // 【修复】使用单引号和 + 号拼接 HTML，避免反引号嵌套导致的语法错误
         const modalHtml = 
             '<div id="renewFormModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="closeRenewFormModal(event)">' +
             '    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white" onclick="event.stopPropagation()">' +
@@ -2310,19 +2340,20 @@ const lunarBiz = {
             '                    <input type="number" id="renewPeriodMultiplier" value="1" min="1" max="120"' +
             '                           class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"' +
             '                           oninput="updateNewExpiryPreview()">' +
-            '                    <span class="text-gray-600">' + periodUnit + '</span>' +
+            '                    <span class="text-gray-600">个</span>' + 
             '                </div>' +
             '                <p class="mt-1 text-xs text-gray-500">一次性续订多个周期（如12个月）</p>' +
             '            </div>' +
             '' +
-            '            <div class="bg-blue-50 rounded-lg p-3">' +
-            '                <div class="flex justify-between text-sm mb-1">' +
-            '                    <span class="text-gray-600">当前到期:</span>' +
-            '                    <span class="font-medium">' + formattedExpiry + '</span>' +
+            '            <div class="bg-blue-50 rounded-lg p-3 relative">' +
+            '                ' + lunarBadge + 
+            '                <div class="flex justify-start items-center text-sm mb-2 gap-3">' +
+            '                    <span class="text-gray-600 whitespace-nowrap">当前到期:</span>' +
+            '                    <div class="font-medium">' + currentExpiryDisplay + '</div>' +
             '                </div>' +
-            '                <div class="flex justify-between text-sm">' +
-            '                    <span class="text-gray-600">新到期日:</span>' +
-            '                    <span class="font-medium text-blue-600" id="newExpiryPreview">计算中...</span>' +
+            '                <div class="flex justify-start items-center text-sm gap-3">' +
+            '                    <span class="text-gray-600 whitespace-nowrap">新到期日:</span>' +
+            '                    <div class="font-medium text-blue-600" id="newExpiryPreview">计算中...</div>' +
             '                </div>' +
             '            </div>' +
             '' +
@@ -2367,22 +2398,70 @@ const lunarBiz = {
         const subscription = JSON.parse(form.dataset.subscriptionData);
         const multiplier = parseInt(document.getElementById('renewPeriodMultiplier').value) || 1;
 
-        const expiryDate = new Date(subscription.expiryDate);
-        const newExpiryDate = new Date(expiryDate);
+        // 获取基准日期，避免直接 new Date() 的时区问题
+        const getDateParts = (dateStr) => {
+            if (!dateStr) return { year: 2024, month: 1, day: 1 };
+            const part = dateStr.split('T')[0];
+            const parts = part.split('-');
+            return {
+                year: parseInt(parts[0], 10),
+                month: parseInt(parts[1], 10),
+                day: parseInt(parts[2], 10)
+            };
+        };
 
+        const parts = getDateParts(subscription.expiryDate);
+        
         if (subscription.useLunar) {
-            // 农历续订的预览比较复杂，简化显示
-            document.getElementById('newExpiryPreview').textContent = '农历计算中...';
-        } else {
-            const totalPeriodValue = subscription.periodValue * multiplier;
-            if (subscription.periodUnit === 'day') {
-                newExpiryDate.setDate(expiryDate.getDate() + totalPeriodValue);
-            } else if (subscription.periodUnit === 'month') {
-                newExpiryDate.setMonth(expiryDate.getMonth() + totalPeriodValue);
-            } else if (subscription.periodUnit === 'year') {
-                newExpiryDate.setFullYear(expiryDate.getFullYear() + totalPeriodValue);
+            try {
+                // 1. 转为农历对象
+                let lunar = lunarCalendar.solar2lunar(parts.year, parts.month, parts.day);
+                
+                if (lunar) {
+                    // 2. 循环添加周期
+                    let nextLunar = lunar;
+                    for(let i = 0; i < multiplier; i++) {
+                        nextLunar = lunarBiz.addLunarPeriod(nextLunar, subscription.periodValue, subscription.periodUnit);
+                    }
+                    
+                    // 3. 转回公历
+                    const solar = lunarBiz.lunar2solar(nextLunar);
+                    
+                    // 重点：用计算出的公历日期重新获取完整的农历对象，确保有 fullStr 属性
+                    const fullNextLunar = lunarCalendar.solar2lunar(solar.year, solar.month, solar.day);
+                    
+                    // 格式化输出 YYYY-MM-DD
+                    const resultStr = solar.year + '-' + 
+                                      String(solar.month).padStart(2, '0') + '-' + 
+                                      String(solar.day).padStart(2, '0');
+                                      
+                    document.getElementById('newExpiryPreview').textContent = resultStr + ' (农历: ' + fullNextLunar.fullStr + ')';
+                } else {
+                    document.getElementById('newExpiryPreview').textContent = '日期计算错误';
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('newExpiryPreview').textContent = '计算出错';
             }
-            document.getElementById('newExpiryPreview').textContent = newExpiryDate.toLocaleDateString('zh-CN');
+        } else {
+            // 公历计算逻辑
+            const tempDate = new Date(parts.year, parts.month - 1, parts.day);
+            const totalPeriodValue = subscription.periodValue * multiplier;
+            
+            if (subscription.periodUnit === 'day') {
+                tempDate.setDate(tempDate.getDate() + totalPeriodValue);
+            } else if (subscription.periodUnit === 'month') {
+                tempDate.setMonth(tempDate.getMonth() + totalPeriodValue);
+            } else if (subscription.periodUnit === 'year') {
+                tempDate.setFullYear(tempDate.getFullYear() + totalPeriodValue);
+            }
+            
+            // 格式化输出 YYYY-MM-DD
+            const y = tempDate.getFullYear();
+            const m = String(tempDate.getMonth() + 1).padStart(2, '0');
+            const d = String(tempDate.getDate()).padStart(2, '0');
+            
+            document.getElementById('newExpiryPreview').textContent = y + '-' + m + '-' + d;
         }
     }
 
@@ -7228,12 +7307,12 @@ function getExpenseByType(subscriptions, timezone) {
   });
 
   return Object.entries(typeMap)
-    .map(([type, amount]) => ({
+    。map(([type, amount]) => ({
       type,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    .sort((a, b) => b.amount - a.amount);
+    。sort((a, b) => b.amount - a.amount);
 }
 
 function getExpenseByCategory(subscriptions, timezone) {
@@ -7267,10 +7346,10 @@ function getExpenseByCategory(subscriptions, timezone) {
   });
 
   return Object.entries(categoryMap)
-    .map(([category, amount]) => ({
+    。map(([category, amount]) => ({
       category,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    .sort((a, b) => b.amount - a.amount);
+    。sort((a, b) => b.amount - a.amount);
 }
