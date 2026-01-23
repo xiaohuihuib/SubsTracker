@@ -7625,12 +7625,12 @@ function getExpenseByType(subscriptions, timezone, rates) {
   });
 
   return Object.entries(typeMap)
-    。map(([type, amount]) => ({
+    .map(([type, amount]) => ({
       type,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    。sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => b.amount - a.amount);
 }
 
 function getExpenseByCategory(subscriptions, timezone, rates) {
@@ -7660,7 +7660,7 @@ function getExpenseByCategory(subscriptions, timezone, rates) {
     });
   });
 
-  return Object。entries(categoryMap)
+  return Object.entries(categoryMap)
     .map(([category, amount]) => ({
       category,
       amount,
