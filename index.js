@@ -7660,11 +7660,11 @@ function getExpenseByCategory(subscriptions, timezone, rates) {
     });
   });
 
-  return Object.entries(categoryMap)
-    。map(([category, amount]) => ({
+  return Object。entries(categoryMap)
+    .map(([category, amount]) => ({
       category,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    。sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => b.amount - a.amount);
 }
