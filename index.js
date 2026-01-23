@@ -7660,7 +7660,7 @@ function getExpenseByCategory(subscriptions, timezone, rates) {
     });
   });
 
-  return Object。entries(categoryMap)
+  return Object.entries(categoryMap)
     .map(([category, amount]) => ({
       category,
       amount,
