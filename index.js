@@ -7109,21 +7109,28 @@ async function checkExpiringSubscriptions(env) {
       let expiryMidnight;
       if (subscription.useLunar) {
         const lunar = lunarCalendar.solar2lunar(expiryDate.getFullYear(), expiryDate.getMonth() + 1, expiryDate.getDate());
-        // 如果转换失败（超出范围），降级为公历处理
-        if(lunar) {
-             const solar = lunarBiz.lunar2solar(lunar);
-             const lunarDate = new Date(solar.year, solar.month - 1, solar.day);
-             expiryMidnight = getTimezoneMidnightTimestamp(lunarDate, timezone);
-        } else {
-             expiryMidnight = getTimezoneMidnightTimestamp(expiryDate, timezone);
-        }
-      } else {
-        expiryMidnight = getTimezoneMidnightTimestamp(expiryDate, timezone);
-      }
+    if(lunar) {
+         const solar = lunarBiz.lunar2solar(lunar);
+         const lunarDate = new Date(solar.year, solar.month - 1, solar.day);
+         expiryMidnight = getTimezoneMidnightTimestamp(lunarDate, timezone);
+    } else {
+         expiryMidnight = getTimezoneMidnightTimestamp(expiryDate, timezone);
+    }
+} else {
+    expiryMidnight = getTimezoneMidnightTimestamp(expiryDate, timezone);
+}
 
-      let daysDiff = Math.round((expiryMidnight - currentMidnight) / MS_PER_DAY);
-      let diffMs = expiryDate.getTime() - currentTime.getTime();
-      let diffHours = diffMs / MS_PER_HOUR;
+// 1. 获取当前时间的 UTC 时间戳
+const nowTs = currentTime.getTime();
+
+const tzOffset = getTimezoneOffset(timezone); 
+// 修正后的到期时间 = 原始UTC时间 - 时区偏移小时
+const adjustedExpiryTime = expiryDate.getTime() - (tzOffset * MS_PER_HOUR);
+
+let daysDiff = Math.round((expiryMidnight - currentMidnight) / MS_PER_DAY);
+// 使用修正后的时间计算差值
+let diffMs = adjustedExpiryTime - currentTime.getTime(); 
+let diffHours = diffMs / MS_PER_HOUR;
 
       // ==========================================
       // 核心逻辑：自动续费处理
@@ -7138,7 +7145,6 @@ async function checkExpiringSubscriptions(env) {
         let newStartDate;
         
         if (mode === 'reset') {
-          // Reset 模式：无视过去，从"现在"重新开始
           // 注意：为了整洁，通常从当天的 00:00 或当前时间开始，这里取 currentTime 保持精确
           newStartDate = new Date(currentTime);
         } else {
@@ -7168,8 +7174,6 @@ async function checkExpiringSubscriptions(env) {
            }
            return targetDate;
         };
-
-        // 执行计算：如果计算出的到期日还在过去，继续往后推（Cycle模式下的补齐逻辑）
         // Reset模式下 newStartDate 是今天，加一次肯定在未来，循环只会执行一次
         do {
             // 在推进到期日之前，现有的 newExpiryDate 就变成了这一轮的"开始日"
@@ -7189,7 +7193,6 @@ async function checkExpiringSubscriptions(env) {
         } while (daysDiff < 0); // 只要还过期，就继续加
 
         console.log(`[定时任务] 续费完成. 新开始日: ${newStartDate.toISOString()}, 新到期日: ${newExpiryDate.toISOString()}`);
-
         // 3. 生成支付记录
         const paymentRecord = {
           id: Date.now().toString() + '_' + Math.random().toString(36).substr(2, 9),
@@ -7203,9 +7206,7 @@ async function checkExpiringSubscriptions(env) {
 
         const paymentHistory = subscription.paymentHistory || [];
         paymentHistory.push(paymentRecord);
-
         // 4. 更新订阅对象
-        // 关键：同时更新 startDate 和 expiryDate
         const updatedSubscription = {
           ...subscription,
           startDate: newStartDate.toISOString(), 
@@ -7624,12 +7625,12 @@ function getExpenseByType(subscriptions, timezone, rates) {
   });
 
   return Object.entries(typeMap)
-    .map(([type, amount]) => ({
+    。map(([type, amount]) => ({
       type,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    .sort((a, b) => b.amount - a.amount);
+    。sort((a, b) => b.amount - a.amount);
 }
 
 function getExpenseByCategory(subscriptions, timezone, rates) {
@@ -7660,10 +7661,10 @@ function getExpenseByCategory(subscriptions, timezone, rates) {
   });
 
   return Object.entries(categoryMap)
-    .map(([category, amount]) => ({
+    。map(([category, amount]) => ({
       category,
       amount,
       percentage: total > 0 ? Math.round((amount / total) * 100) : 0
     }))
-    .sort((a, b) => b.amount - a.amount);
+    。sort((a, b) => b.amount - a.amount);
 }
