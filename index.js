@@ -41,7 +41,7 @@ function getTimezoneDateParts(date, timezone = 'UTC') {
     });
     const parts = formatter.formatToParts(date);
     const pick = (type) => {
-      const part = parts.find(item => item.type === 输入);
+      const part = parts.find(item => item.type === type);
       return part ? Number(part.value) : 0;
     };
     return {
@@ -78,7 +78,7 @@ function formatTimeInTimezone(time, timezone = 'UTC', format = 'full') {
     if (format === 'date') {
       return date.toLocaleDateString('zh-CN', {
         timeZone: timezone,
-        year: 'numeric'，
+        year: 'numeric',
         month: '2-digit',
         day: '2-digit'
       });
