@@ -485,6 +485,7 @@
 
         document.getElementById('adminUsername').value = config.ADMIN_USERNAME || '';
         document.getElementById('themeModeSelect').value = config.THEME_MODE || 'system';  // 回显主题设置
+        // 注意：后端会对敏感字段返回 "********" 占位符，前端仅回显占位符，避免泄露真实 token。
         document.getElementById('tgBotToken').value = config.TG_BOT_TOKEN || '';
         document.getElementById('tgChatId').value = config.TG_CHAT_ID || '';
         document.getElementById('notifyxApiKey').value = config.NOTIFYX_API_KEY || '';
