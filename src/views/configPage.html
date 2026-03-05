@@ -233,6 +233,10 @@
                 <input type="checkbox" name="enabledNotifiers" value="bark" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
                 <span class="ml-2 text-sm text-gray-700">Bark</span>
               </label>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="enabledNotifiers" value="gotify" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                <span class="ml-2 text-sm text-gray-700">Gotify</span>
+              </label>
             </div>
             <div class="mt-2 flex flex-wrap gap-4">
               <a href="https://www.notifyx.cn/" target="_blank" class="text-indigo-600 hover:text-indigo-800 text-sm">
@@ -443,6 +447,26 @@
               </button>
             </div>
           </div>
+
+          <div id="gotifyConfig" class="config-section">
+            <h4 class="text-md font-medium text-gray-900 mb-3">Gotify 配置</h4>
+            <div class="grid grid-cols-1 gap-4 mb-4">
+              <div>
+                <label for="gotifyServerUrl" class="block text-sm font-medium text-gray-700">Server URL</label>
+                <input type="url" id="gotifyServerUrl" placeholder="https://gotify.example.com" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <p class="mt-1 text-sm text-gray-500">你的 Gotify 服务地址（不需要带 /message）。</p>
+              </div>
+              <div>
+                <label for="gotifyAppToken" class="block text-sm font-medium text-gray-700">Application Token</label>
+                <input type="text" id="gotifyAppToken" placeholder="从 Gotify 里创建 Application 获取" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              </div>
+            </div>
+            <div class="flex justify-end">
+              <button type="button" id="testGotifyBtn" class="btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium">
+                <i class="fas fa-paper-plane mr-2"></i>测试 Gotify 通知
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="flex justify-end">
@@ -505,6 +529,8 @@
         document.getElementById('barkDeviceKey').value = config.BARK_DEVICE_KEY || '';
         document.getElementById('barkIsArchive').checked = config.BARK_IS_ARCHIVE === 'true';
         document.getElementById('thirdPartyToken').value = config.THIRD_PARTY_API_TOKEN || '';
+        document.getElementById('gotifyServerUrl').value = config.GOTIFY_SERVER_URL || '';
+        document.getElementById('gotifyAppToken').value = config.GOTIFY_APP_TOKEN || '';
         document.getElementById('debugLogs').checked = config.DEBUG_LOGS === true;
         document.getElementById('paymentHistoryLimit').value = Number(config.PAYMENT_HISTORY_LIMIT) || 100;
         const notificationHoursInput = document.getElementById('notificationHours');
@@ -585,9 +611,10 @@
       const wechatbotConfig = document.getElementById('wechatbotConfig');
       const emailConfig = document.getElementById('emailConfig');
       const barkConfig = document.getElementById('barkConfig');
+      const gotifyConfig = document.getElementById('gotifyConfig');
 
       // 重置所有配置区域
-      [telegramConfig, notifyxConfig, webhookConfig, wechatbotConfig, emailConfig, barkConfig].forEach(config => {
+      [telegramConfig, notifyxConfig, webhookConfig, wechatbotConfig, emailConfig, barkConfig, gotifyConfig].forEach(config => {
         config.classList.remove('active', 'inactive');
         config.classList.add('inactive');
       });
@@ -612,6 +639,9 @@
         } else if (type === 'bark') {
           barkConfig.classList.remove('inactive');
           barkConfig.classList.add('active');
+        } else if (type === 'gotify') {
+          gotifyConfig.classList.remove('inactive');
+          gotifyConfig.classList.add('active');
         }
       });
     }
@@ -657,6 +687,8 @@
         BARK_SERVER: document.getElementById('barkServer').value.trim() || 'https://api.day.app',
         BARK_DEVICE_KEY: document.getElementById('barkDeviceKey').value.trim(),
         BARK_IS_ARCHIVE: document.getElementById('barkIsArchive').checked.toString(),
+        GOTIFY_SERVER_URL: document.getElementById('gotifyServerUrl').value.trim(),
+        GOTIFY_APP_TOKEN: document.getElementById('gotifyAppToken').value.trim(),
         ENABLED_NOTIFIERS: enabledNotifiers,
         TIMEZONE: document.getElementById('timezone').value.trim(),
         THIRD_PARTY_API_TOKEN: document.getElementById('thirdPartyToken').value.trim(),
@@ -733,7 +765,8 @@
                       type === 'notifyx' ? 'testNotifyXBtn' :
                       type === 'wechatbot' ? 'testWechatBotBtn' :
                       type === 'email' ? 'testEmailBtn' :
-                      type === 'bark' ? 'testBarkBtn' : 'testWebhookBtn';
+                      type === 'bark' ? 'testBarkBtn' :
+                      type === 'gotify' ? 'testGotifyBtn' : 'testWebhookBtn';
       const button = document.getElementById(buttonId);
       if (!button) {
         showToast('测试按钮不存在，请刷新页面后重试', 'error');
@@ -744,7 +777,8 @@
                           type === 'notifyx' ? 'NotifyX' :
                           type === 'wechatbot' ? '企业微信机器人' :
                           type === 'email' ? '邮件通知' :
-                          type === 'bark' ? 'Bark' : 'Webhook 通知';
+                          type === 'bark' ? 'Bark' :
+                          type === 'gotify' ? 'Gotify' : 'Webhook 通知';
 
       button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>测试中...';
       button.disabled = true;
@@ -816,6 +850,16 @@
           button.disabled = false;
           return;
         }
+      } else if (type === 'gotify') {
+        config.GOTIFY_SERVER_URL = document.getElementById('gotifyServerUrl').value.trim();
+        config.GOTIFY_APP_TOKEN = document.getElementById('gotifyAppToken').value.trim();
+
+        if (!config.GOTIFY_SERVER_URL || !config.GOTIFY_APP_TOKEN) {
+          showToast('请先填写 Gotify Server URL 和 Application Token', 'warning');
+          button.innerHTML = originalContent;
+          button.disabled = false;
+          return;
+        }
       }
 
       try {
@@ -869,6 +913,10 @@
 
     document.getElementById('testBarkBtn').addEventListener('click', () => {
       testNotification('bark');
+    });
+
+    document.getElementById('testGotifyBtn').addEventListener('click', () => {
+      testNotification('gotify');
     });
 
     document.getElementById('generateThirdPartyToken').addEventListener('click', () => {

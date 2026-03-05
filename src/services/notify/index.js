@@ -4,6 +4,7 @@ import { sendWebhookNotification } from './webhook.js';
 import { sendWechatBotNotification } from './wechat.js';
 import { sendEmailNotification } from './email.js';
 import { sendBarkNotification } from './bark.js';
+import { sendGotifyNotification } from './gotify.js';
 
 async function sendNotificationToAllChannels(title, commonContent, config, logPrefix = '[定时任务]', options = {}) {
   const metadata = options.metadata || {};
@@ -67,6 +68,15 @@ async function sendNotificationToAllChannels(title, commonContent, config, logPr
     result.channelResults.bark = success;
     success ? result.successCount++ : result.failedCount++;
     console.log(`${logPrefix} 发送Bark通知 ${success ? '成功' : '失败'}`);
+  }
+
+  if (enabledNotifiers.includes('gotify')) {
+    result.attempted += 1;
+    const gotifyContent = commonContent.replace(/(\**|\*|##|#|`)/g, '');
+    const success = await sendGotifyNotification(title, gotifyContent, config);
+    result.channelResults.gotify = success;
+    success ? result.successCount++ : result.failedCount++;
+    console.log(`${logPrefix} 发送Gotify通知 ${success ? '成功' : '失败'}`);
   }
 
   return result;
