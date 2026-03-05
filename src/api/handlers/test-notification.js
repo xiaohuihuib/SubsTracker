@@ -6,6 +6,7 @@ import { sendWebhookNotification } from '../../services/notify/webhook.js';
 import { sendWechatBotNotification } from '../../services/notify/wechat.js';
 import { sendEmailNotification } from '../../services/notify/email.js';
 import { sendBarkNotification } from '../../services/notify/bark.js';
+import { sendGotifyNotification } from '../../services/notify/gotify.js';
 
 async function handleTestNotification(request, env) {
   try {
@@ -15,7 +16,7 @@ async function handleTestNotification(request, env) {
     let message = '';
 
     const type = typeof body.type === 'string' ? body.type.trim() : '';
-    const supportedTypes = ['telegram', 'notifyx', 'webhook', 'wechatbot', 'email', 'bark'];
+    const supportedTypes = ['telegram', 'notifyx', 'webhook', 'wechatbot', 'email', 'bark', 'gotify'];
 
     if (!type) {
       return new Response(
@@ -108,6 +109,18 @@ async function handleTestNotification(request, env) {
 
       success = await sendBarkNotification(title, content, testConfig);
       message = success ? 'Bark通知发送成功' : 'Bark通知发送失败，请检查配置';
+    } else if (type === 'gotify') {
+      const testConfig = {
+        ...config,
+        GOTIFY_SERVER_URL: body.GOTIFY_SERVER_URL,
+        GOTIFY_APP_TOKEN: body.GOTIFY_APP_TOKEN
+      };
+
+      const title = '测试通知';
+      const content = '这是一条测试通知，用于验证Gotify通知功能是否正常工作。\n\n发送时间: ' + formatBeijingTime();
+
+      success = await sendGotifyNotification(title, content, testConfig);
+      message = success ? 'Gotify通知发送成功' : 'Gotify通知发送失败，请检查配置';
     }
 
     return new Response(

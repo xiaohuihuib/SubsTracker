@@ -10,7 +10,8 @@ const SECRET_FIELDS = [
   'WECHATBOT_WEBHOOK',
   'RESEND_API_KEY',
   'BARK_DEVICE_KEY',
-  'THIRD_PARTY_API_TOKEN'
+  'THIRD_PARTY_API_TOKEN',
+  'GOTIFY_APP_TOKEN'
 ];
 
 function maskSecrets(config) {
@@ -80,6 +81,9 @@ async function handleUpdateConfig(request, env) {
       BARK_DEVICE_KEY: mergeSecretField(config, newConfig, 'BARK_DEVICE_KEY'),
       BARK_SERVER: newConfig.BARK_SERVER || 'https://api.day.app',
       BARK_IS_ARCHIVE: newConfig.BARK_IS_ARCHIVE || 'false',
+
+      GOTIFY_SERVER_URL: (newConfig.GOTIFY_SERVER_URL || '').trim(),
+      GOTIFY_APP_TOKEN: mergeSecretField(config, newConfig, 'GOTIFY_APP_TOKEN'),
 
       ENABLED_NOTIFIERS: newConfig.ENABLED_NOTIFIERS || ['notifyx'],
       TIMEZONE: newConfig.TIMEZONE || config.TIMEZONE || 'UTC',
