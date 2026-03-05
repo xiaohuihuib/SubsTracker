@@ -260,12 +260,16 @@
           <div class="mb-6">
             <label for="thirdPartyToken" class="block text-sm font-medium text-gray-700">第三方 API 访问令牌</label>
             <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
-              <input type="text" id="thirdPartyToken" placeholder="建议使用随机字符串，例如：iH5s9vB3..."
+              <input type="text" id="thirdPartyToken" placeholder="留空表示不修改；输入新值将更新"
                 class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
               <button type="button" id="generateThirdPartyToken" class="btn-info text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
                 <i class="fas fa-magic mr-2"></i>生成令牌
               </button>
+              <button type="button" id="clearThirdPartyToken" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                <i class="fas fa-eraser mr-2"></i>清空
+              </button>
             </div>
+            <p id="THIRD_PARTY_API_TOKENStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
             <p class="mt-1 text-sm text-gray-500">调用 /api/notify/{token} 接口时需携带此令牌；留空表示禁用第三方 API 推送。</p>
           </div>
 
@@ -290,7 +294,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label for="tgBotToken" class="block text-sm font-medium text-gray-700">Bot Token</label>
-                <input type="text" id="tgBotToken" placeholder="从 @BotFather 获取" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input type="text" id="tgBotToken" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <button type="button" id="clearTgBotToken" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-eraser mr-2"></i>清空
+                  </button>
+                </div>
+                <p id="TG_BOT_TOKENStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
               </div>
               <div>
                 <label for="tgChatId" class="block text-sm font-medium text-gray-700">Chat ID</label>
@@ -308,7 +318,13 @@
             <h4 class="text-md font-medium text-gray-900 mb-3">NotifyX 配置</h4>
             <div class="mb-4">
               <label for="notifyxApiKey" class="block text-sm font-medium text-gray-700">API Key</label>
-              <input type="text" id="notifyxApiKey" placeholder="从 NotifyX 平台获取的 API Key" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                <input type="text" id="notifyxApiKey" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <button type="button" id="clearNotifyxApiKey" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                  <i class="fas fa-eraser mr-2"></i>清空
+                </button>
+              </div>
+              <p id="NOTIFYX_API_KEYStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
               <p class="mt-1 text-sm text-gray-500">从 <a href="https://www.notifyx.cn/" target="_blank" class="text-indigo-600 hover:text-indigo-800">NotifyX平台</a> 获取的 API Key</p>
             </div>
             <div class="flex justify-end">
@@ -323,7 +339,13 @@
             <div class="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <label for="webhookUrl" class="block text-sm font-medium text-gray-700">Webhook 通知 URL</label>
-                <input type="url" id="webhookUrl" placeholder="https://your-webhook-endpoint.com/path" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input type="url" id="webhookUrl" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <button type="button" id="clearWebhookUrl" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-eraser mr-2"></i>清空
+                  </button>
+                </div>
+                <p id="WEBHOOK_URLStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
                 <p class="mt-1 text-sm text-gray-500">请填写自建服务或第三方平台提供的 Webhook 地址，例如 <code>https://your-webhook-endpoint.com/path</code></p>
               </div>
               <div>
@@ -336,7 +358,13 @@
               </div>
               <div>
                 <label for="webhookHeaders" class="block text-sm font-medium text-gray-700">自定义请求头 (JSON格式，可选)</label>
-                <textarea id="webhookHeaders" rows="3" placeholder='{"Authorization": "Bearer your-token", "Content-Type": "application/json"}' class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                <div class="mt-1 flex flex-col sm:flex-row sm:items-start gap-3">
+                  <textarea id="webhookHeaders" rows="3" placeholder='留空表示不修改；输入新值将更新' class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                  <button type="button" id="clearWebhookHeaders" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-eraser mr-2"></i>清空
+                  </button>
+                </div>
+                <p id="WEBHOOK_HEADERSStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
                 <p class="mt-1 text-sm text-gray-500">JSON格式的自定义请求头，留空使用默认</p>
               </div>
               <div>
@@ -357,7 +385,13 @@
             <div class="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <label for="wechatbotWebhook" class="block text-sm font-medium text-gray-700">机器人 Webhook URL</label>
-                <input type="url" id="wechatbotWebhook" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input type="url" id="wechatbotWebhook" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <button type="button" id="clearWechatbotWebhook" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-eraser mr-2"></i>清空
+                  </button>
+                </div>
+                <p id="WECHATBOT_WEBHOOKStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
                 <p class="mt-1 text-sm text-gray-500">从企业微信群聊中添加机器人获取的 Webhook URL</p>
               </div>
               <div>
@@ -393,7 +427,13 @@
             <div class="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <label for="resendApiKey" class="block text-sm font-medium text-gray-700">Resend API Key</label>
-                <input type="text" id="resendApiKey" placeholder="re_xxxxxxxxxx" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input type="text" id="resendApiKey" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <button type="button" id="clearResendApiKey" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-eraser mr-2"></i>清空
+                  </button>
+                </div>
+                <p id="RESEND_API_KEYStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
                 <p class="mt-1 text-sm text-gray-500">从 <a href="https://resend.com/api-keys" target="_blank" class="text-indigo-600 hover:text-indigo-800">Resend控制台</a> 获取的 API Key</p>
               </div>
               <div>
@@ -429,7 +469,13 @@
               </div>
               <div>
                 <label for="barkDeviceKey" class="block text-sm font-medium text-gray-700">设备Key</label>
-                <input type="text" id="barkDeviceKey" placeholder="从Bark应用获取的设备Key" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input type="text" id="barkDeviceKey" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                  <button type="button" id="clearBarkDeviceKey" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                    <i class="fas fa-eraser mr-2"></i>清空
+                  </button>
+                </div>
+                <p id="BARK_DEVICE_KEYStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
                 <p class="mt-1 text-sm text-gray-500">从 <a href="https://apps.apple.com/cn/app/bark-customed-notifications/id1403753865" target="_blank" class="text-indigo-600 hover:text-indigo-800">Bark iOS 应用</a> 中获取的设备Key</p>
               </div>
               <div>
@@ -456,10 +502,14 @@
                 <input type="url" id="gotifyServerUrl" placeholder="https://gotify.example.com" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
                 <p class="mt-1 text-sm text-gray-500">你的 Gotify 服务地址（不需要带 /message）。</p>
               </div>
-              <div>
-                <label for="gotifyAppToken" class="block text-sm font-medium text-gray-700">Application Token</label>
-                <input type="text" id="gotifyAppToken" placeholder="从 Gotify 里创建 Application 获取" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <label for="gotifyAppToken" class="block text-sm font-medium text-gray-700">Application Token</label>
+              <div class="mt-1 flex flex-col sm:flex-row sm:items-center gap-3">
+                <input type="text" id="gotifyAppToken" placeholder="留空表示不修改；输入新值将更新" class="flex-1 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <button type="button" id="clearGotifyAppToken" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap">
+                  <i class="fas fa-eraser mr-2"></i>清空
+                </button>
               </div>
+              <p id="GOTIFY_APP_TOKENStatus" class="mt-1 text-xs text-gray-500">加载中...</p>
             </div>
             <div class="flex justify-end">
               <button type="button" id="testGotifyBtn" class="btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium">
@@ -502,35 +552,108 @@
       }, duration);
     }
 
+    // 记录用户是否点击了“清空”某个密钥字段；保存时会提交给后端处理
+    const CLEAR_SECRET_FIELDS = new Set();
+
+    function setSecretStatus(key, text) {
+      const el = document.getElementById(key + 'Status');
+      if (!el) return;
+      el.textContent = text;
+    }
+
+    function updateAllSecretStatus() {
+      const cfg = window.SECRET_CONFIGURED || {};
+      setSecretStatus('TG_BOT_TOKEN', cfg.TG_BOT_TOKEN ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('NOTIFYX_API_KEY', cfg.NOTIFYX_API_KEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('WEBHOOK_URL', cfg.WEBHOOK_URL ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('WEBHOOK_HEADERS', cfg.WEBHOOK_HEADERS ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('WECHATBOT_WEBHOOK', cfg.WECHATBOT_WEBHOOK ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('RESEND_API_KEY', cfg.RESEND_API_KEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('BARK_DEVICE_KEY', cfg.BARK_DEVICE_KEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('THIRD_PARTY_API_TOKEN', cfg.THIRD_PARTY_API_TOKEN ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('GOTIFY_APP_TOKEN', cfg.GOTIFY_APP_TOKEN ? '已配置（已隐藏）' : '未配置');
+    }
+
+    function wireSecretInput(inputId, key) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener('input', () => {
+        const value = input.value.trim();
+        if (value.length > 0) {
+          // 用户输入了新值，视为将被更新
+          CLEAR_SECRET_FIELDS.delete(key);
+          setSecretStatus(key, '将更新（保存后生效）');
+        } else {
+          // 空表示“不修改”（默认）
+          const cfg = window.SECRET_CONFIGURED || {};
+          setSecretStatus(key, cfg[key] ? '已配置（已隐藏）' : '未配置');
+        }
+      });
+    }
+
+    function wireClearSecretButton(buttonId, inputId, key) {
+      const btn = document.getElementById(buttonId);
+      const input = document.getElementById(inputId);
+      if (!btn || !input) return;
+      btn.addEventListener('click', () => {
+        input.value = '';
+        CLEAR_SECRET_FIELDS.add(key);
+        setSecretStatus(key, '将清空（保存后生效）');
+        showToast('已标记清空：' + key + '（点击“保存配置”后生效）', 'warning', 4500);
+      });
+    }
+
     async function loadConfig() {
       try {
         const response = await fetch('/api/config');
         const config = await response.json();
 
+        // === 安全策略 ===
+        // 1) 所有 token/密钥类字段，后端不会下发真实值；这里只显示“已配置(隐藏)”状态。
+        // 2) 不填写 token/密钥字段并保存时，后端会保持原值不变。
+        // 3) 如需清空，请点对应的“清空”按钮（会在保存时生效）。
+
         document.getElementById('adminUsername').value = config.ADMIN_USERNAME || '';
         document.getElementById('themeModeSelect').value = config.THEME_MODE || 'system';  // 回显主题设置
-        // 注意：后端会对敏感字段返回 "********" 占位符，前端仅回显占位符，避免泄露真实 token。
-        document.getElementById('tgBotToken').value = config.TG_BOT_TOKEN || '';
+
+        // 非敏感字段正常回显
         document.getElementById('tgChatId').value = config.TG_CHAT_ID || '';
-        document.getElementById('notifyxApiKey').value = config.NOTIFYX_API_KEY || '';
-        document.getElementById('webhookUrl').value = config.WEBHOOK_URL || '';
         document.getElementById('webhookMethod').value = config.WEBHOOK_METHOD || 'POST';
-        document.getElementById('webhookHeaders').value = config.WEBHOOK_HEADERS || '';
         document.getElementById('webhookTemplate').value = config.WEBHOOK_TEMPLATE || '';
-        document.getElementById('wechatbotWebhook').value = config.WECHATBOT_WEBHOOK || '';
         document.getElementById('wechatbotMsgType').value = config.WECHATBOT_MSG_TYPE || 'text';
         document.getElementById('wechatbotAtMobiles').value = config.WECHATBOT_AT_MOBILES || '';
         document.getElementById('wechatbotAtAll').checked = config.WECHATBOT_AT_ALL === 'true';
-        document.getElementById('resendApiKey').value = config.RESEND_API_KEY || '';
         document.getElementById('emailFrom').value = config.EMAIL_FROM || '';
         document.getElementById('emailFromName').value = config.EMAIL_FROM_NAME || '订阅提醒系统';
         document.getElementById('emailTo').value = config.EMAIL_TO || '';
         document.getElementById('barkServer').value = config.BARK_SERVER || 'https://api.day.app';
-        document.getElementById('barkDeviceKey').value = config.BARK_DEVICE_KEY || '';
         document.getElementById('barkIsArchive').checked = config.BARK_IS_ARCHIVE === 'true';
-        document.getElementById('thirdPartyToken').value = config.THIRD_PARTY_API_TOKEN || '';
         document.getElementById('gotifyServerUrl').value = config.GOTIFY_SERVER_URL || '';
-        document.getElementById('gotifyAppToken').value = config.GOTIFY_APP_TOKEN || '';
+
+        // 敏感字段：清空输入框（不回显真实值）
+        document.getElementById('tgBotToken').value = '';
+        document.getElementById('notifyxApiKey').value = '';
+        document.getElementById('webhookUrl').value = '';
+        document.getElementById('webhookHeaders').value = '';
+        document.getElementById('wechatbotWebhook').value = '';
+        document.getElementById('resendApiKey').value = '';
+        document.getElementById('barkDeviceKey').value = '';
+        document.getElementById('thirdPartyToken').value = '';
+        document.getElementById('gotifyAppToken').value = '';
+
+        window.SECRET_CONFIGURED = {
+          TG_BOT_TOKEN: config.TG_BOT_TOKEN_CONFIGURED === true,
+          NOTIFYX_API_KEY: config.NOTIFYX_API_KEY_CONFIGURED === true,
+          WEBHOOK_URL: config.WEBHOOK_URL_CONFIGURED === true,
+          WEBHOOK_HEADERS: config.WEBHOOK_HEADERS_CONFIGURED === true,
+          WECHATBOT_WEBHOOK: config.WECHATBOT_WEBHOOK_CONFIGURED === true,
+          RESEND_API_KEY: config.RESEND_API_KEY_CONFIGURED === true,
+          BARK_DEVICE_KEY: config.BARK_DEVICE_KEY_CONFIGURED === true,
+          THIRD_PARTY_API_TOKEN: config.THIRD_PARTY_API_TOKEN_CONFIGURED === true,
+          GOTIFY_APP_TOKEN: config.GOTIFY_APP_TOKEN_CONFIGURED === true
+        };
+
+        updateAllSecretStatus();
         document.getElementById('debugLogs').checked = config.DEBUG_LOGS === true;
         document.getElementById('paymentHistoryLimit').value = Number(config.PAYMENT_HISTORY_LIMIT) || 100;
         const notificationHoursInput = document.getElementById('notificationHours');
@@ -668,30 +791,38 @@
       const config = {
         ADMIN_USERNAME: document.getElementById('adminUsername').value.trim(),
         THEME_MODE: document.getElementById('themeModeSelect').value,      // 保存主题设置
+
+        // token/密钥类字段：默认留空=不修改；要清空则走 CLEAR_SECRET_FIELDS
         TG_BOT_TOKEN: document.getElementById('tgBotToken').value.trim(),
-        TG_CHAT_ID: document.getElementById('tgChatId').value.trim(),
         NOTIFYX_API_KEY: document.getElementById('notifyxApiKey').value.trim(),
         WEBHOOK_URL: document.getElementById('webhookUrl').value.trim(),
-        WEBHOOK_METHOD: document.getElementById('webhookMethod').value,
         WEBHOOK_HEADERS: document.getElementById('webhookHeaders').value.trim(),
+        WECHATBOT_WEBHOOK: document.getElementById('wechatbotWebhook').value.trim(),
+        RESEND_API_KEY: document.getElementById('resendApiKey').value.trim(),
+        BARK_DEVICE_KEY: document.getElementById('barkDeviceKey').value.trim(),
+        THIRD_PARTY_API_TOKEN: document.getElementById('thirdPartyToken').value.trim(),
+        GOTIFY_APP_TOKEN: document.getElementById('gotifyAppToken').value.trim(),
+
+        // 非敏感字段正常提交
+        TG_CHAT_ID: document.getElementById('tgChatId').value.trim(),
+        WEBHOOK_METHOD: document.getElementById('webhookMethod').value,
         WEBHOOK_TEMPLATE: document.getElementById('webhookTemplate').value.trim(),
         SHOW_LUNAR: document.getElementById('showLunarGlobal').checked,
-        WECHATBOT_WEBHOOK: document.getElementById('wechatbotWebhook').value.trim(),
         WECHATBOT_MSG_TYPE: document.getElementById('wechatbotMsgType').value,
         WECHATBOT_AT_MOBILES: document.getElementById('wechatbotAtMobiles').value.trim(),
         WECHATBOT_AT_ALL: document.getElementById('wechatbotAtAll').checked.toString(),
-        RESEND_API_KEY: document.getElementById('resendApiKey').value.trim(),
         EMAIL_FROM: document.getElementById('emailFrom').value.trim(),
         EMAIL_FROM_NAME: document.getElementById('emailFromName').value.trim(),
         EMAIL_TO: document.getElementById('emailTo').value.trim(),
         BARK_SERVER: document.getElementById('barkServer').value.trim() || 'https://api.day.app',
-        BARK_DEVICE_KEY: document.getElementById('barkDeviceKey').value.trim(),
         BARK_IS_ARCHIVE: document.getElementById('barkIsArchive').checked.toString(),
         GOTIFY_SERVER_URL: document.getElementById('gotifyServerUrl').value.trim(),
-        GOTIFY_APP_TOKEN: document.getElementById('gotifyAppToken').value.trim(),
         ENABLED_NOTIFIERS: enabledNotifiers,
         TIMEZONE: document.getElementById('timezone').value.trim(),
-        THIRD_PARTY_API_TOKEN: document.getElementById('thirdPartyToken').value.trim(),
+
+        // 标记“清空哪些密钥字段”
+        CLEAR_SECRET_FIELDS: Array.from(CLEAR_SECRET_FIELDS),
+
         DEBUG_LOGS: document.getElementById('debugLogs').checked === true,
         PAYMENT_HISTORY_LIMIT: (() => {
           const raw = Number(document.getElementById('paymentHistoryLimit').value);
@@ -784,78 +915,45 @@
       button.disabled = true;
 
       const config = {};
+      // 方案 B：敏感字段不回显。测试通知时如果用户没填，就按“使用服务器已保存的配置”处理。
       if (type === 'telegram') {
-        config.TG_BOT_TOKEN = document.getElementById('tgBotToken').value.trim();
         config.TG_CHAT_ID = document.getElementById('tgChatId').value.trim();
-
-        if (!config.TG_BOT_TOKEN || !config.TG_CHAT_ID) {
-          showToast('请先填写 Telegram Bot Token 和 Chat ID', 'warning');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          return;
-        }
+        const token = document.getElementById('tgBotToken').value.trim();
+        if (token) config.TG_BOT_TOKEN = token;
       } else if (type === 'notifyx') {
-        config.NOTIFYX_API_KEY = document.getElementById('notifyxApiKey').value.trim();
-
-        if (!config.NOTIFYX_API_KEY) {
-          showToast('请先填写 NotifyX API Key', 'warning');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          return;
-        }
+        const key = document.getElementById('notifyxApiKey').value.trim();
+        if (key) config.NOTIFYX_API_KEY = key;
       } else if (type === 'webhook') {
-        config.WEBHOOK_URL = document.getElementById('webhookUrl').value.trim();
         config.WEBHOOK_METHOD = document.getElementById('webhookMethod').value;
-        config.WEBHOOK_HEADERS = document.getElementById('webhookHeaders').value.trim();
         config.WEBHOOK_TEMPLATE = document.getElementById('webhookTemplate').value.trim();
-
-        if (!config.WEBHOOK_URL) {
-          showToast('请先填写 Webhook 通知 URL', 'warning');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          return;
-        }
+        const url = document.getElementById('webhookUrl').value.trim();
+        const headers = document.getElementById('webhookHeaders').value.trim();
+        if (url) config.WEBHOOK_URL = url;
+        if (headers) config.WEBHOOK_HEADERS = headers;
       } else if (type === 'wechatbot') {
-        config.WECHATBOT_WEBHOOK = document.getElementById('wechatbotWebhook').value.trim();
         config.WECHATBOT_MSG_TYPE = document.getElementById('wechatbotMsgType').value;
         config.WECHATBOT_AT_MOBILES = document.getElementById('wechatbotAtMobiles').value.trim();
         config.WECHATBOT_AT_ALL = document.getElementById('wechatbotAtAll').checked.toString();
-
-        if (!config.WECHATBOT_WEBHOOK) {
-          showToast('请先填写企业微信机器人 Webhook URL', 'warning');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          return;
-        }
+        const url = document.getElementById('wechatbotWebhook').value.trim();
+        if (url) config.WECHATBOT_WEBHOOK = url;
       } else if (type === 'email') {
-        config.RESEND_API_KEY = document.getElementById('resendApiKey').value.trim();
+        const key = document.getElementById('resendApiKey').value.trim();
+        if (key) config.RESEND_API_KEY = key;
         config.EMAIL_FROM = document.getElementById('emailFrom').value.trim();
         config.EMAIL_FROM_NAME = document.getElementById('emailFromName').value.trim();
         config.EMAIL_TO = document.getElementById('emailTo').value.trim();
-
-        if (!config.RESEND_API_KEY || !config.EMAIL_FROM || !config.EMAIL_TO) {
-          showToast('请先填写 Resend API Key、发件人邮箱和收件人邮箱', 'warning');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          return;
-        }
       } else if (type === 'bark') {
         config.BARK_SERVER = document.getElementById('barkServer').value.trim() || 'https://api.day.app';
-        config.BARK_DEVICE_KEY = document.getElementById('barkDeviceKey').value.trim();
+        const key = document.getElementById('barkDeviceKey').value.trim();
+        if (key) config.BARK_DEVICE_KEY = key;
         config.BARK_IS_ARCHIVE = document.getElementById('barkIsArchive').checked.toString();
-
-        if (!config.BARK_DEVICE_KEY) {
-          showToast('请先填写 Bark 设备Key', 'warning');
-          button.innerHTML = originalContent;
-          button.disabled = false;
-          return;
-        }
       } else if (type === 'gotify') {
         config.GOTIFY_SERVER_URL = document.getElementById('gotifyServerUrl').value.trim();
-        config.GOTIFY_APP_TOKEN = document.getElementById('gotifyAppToken').value.trim();
+        const token = document.getElementById('gotifyAppToken').value.trim();
+        if (token) config.GOTIFY_APP_TOKEN = token;
 
-        if (!config.GOTIFY_SERVER_URL || !config.GOTIFY_APP_TOKEN) {
-          showToast('请先填写 Gotify Server URL 和 Application Token', 'warning');
+        if (!config.GOTIFY_SERVER_URL) {
+          showToast('请先填写 Gotify Server URL', 'warning');
           button.innerHTML = originalContent;
           button.disabled = false;
           return;
@@ -936,7 +1034,30 @@
       }
     });
 
-    window.addEventListener('load', loadConfig);
+    window.addEventListener('load', () => {
+      // 绑定敏感字段输入/清空按钮
+      wireSecretInput('tgBotToken', 'TG_BOT_TOKEN');
+      wireSecretInput('notifyxApiKey', 'NOTIFYX_API_KEY');
+      wireSecretInput('webhookUrl', 'WEBHOOK_URL');
+      wireSecretInput('webhookHeaders', 'WEBHOOK_HEADERS');
+      wireSecretInput('wechatbotWebhook', 'WECHATBOT_WEBHOOK');
+      wireSecretInput('resendApiKey', 'RESEND_API_KEY');
+      wireSecretInput('barkDeviceKey', 'BARK_DEVICE_KEY');
+      wireSecretInput('thirdPartyToken', 'THIRD_PARTY_API_TOKEN');
+      wireSecretInput('gotifyAppToken', 'GOTIFY_APP_TOKEN');
+
+      wireClearSecretButton('clearTgBotToken', 'tgBotToken', 'TG_BOT_TOKEN');
+      wireClearSecretButton('clearNotifyxApiKey', 'notifyxApiKey', 'NOTIFYX_API_KEY');
+      wireClearSecretButton('clearWebhookUrl', 'webhookUrl', 'WEBHOOK_URL');
+      wireClearSecretButton('clearWebhookHeaders', 'webhookHeaders', 'WEBHOOK_HEADERS');
+      wireClearSecretButton('clearWechatbotWebhook', 'wechatbotWebhook', 'WECHATBOT_WEBHOOK');
+      wireClearSecretButton('clearResendApiKey', 'resendApiKey', 'RESEND_API_KEY');
+      wireClearSecretButton('clearBarkDeviceKey', 'barkDeviceKey', 'BARK_DEVICE_KEY');
+      wireClearSecretButton('clearThirdPartyToken', 'thirdPartyToken', 'THIRD_PARTY_API_TOKEN');
+      wireClearSecretButton('clearGotifyAppToken', 'gotifyAppToken', 'GOTIFY_APP_TOKEN');
+
+      loadConfig();
+    });
     
     // 前端展示时区（固定使用浏览器本地时区）
     let globalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
